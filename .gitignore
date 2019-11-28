@@ -1,0 +1,6 @@
+# basin forcings, observed streamflow, and shapes are ignored
+data_in/*.mat
+data_in/data_obs/*
+
+# basin outputs (pkl files are ignored)
+data_out/*
