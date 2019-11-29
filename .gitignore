@@ -4,3 +4,13 @@ data_in/data_obs/*
 
 # basin outputs (pkl files are ignored)
 data_out/*
+
+# some python generated files
+scripts/*.pyc
+scripts/lib/*.pyc
+scripts/lib/*/*.pyc
+scripts/__pycache__
+scripts/lib/__pycache__
+scripts/lib/*/__pycache__
+scripts/*.pdf
+
