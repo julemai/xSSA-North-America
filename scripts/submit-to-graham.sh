@@ -67,10 +67,17 @@ basins=(01085500 01389800 01449000 01451000 01533400 01536500 01589000 01632000 
 # basins=(01BG009 02338000 03090500 03403500 04212100 05484900 06264000 06709000 06EA007 07251500 08086050 08LA008 09419507 11187000 12472500 14339000)
 
 if [ ! -e ../data_out/${bb}/results_nsets${nsets}.pkl ] ; then
-    
+
+    # actual analysis
     bb=$( echo ${basins[$(( ${SLURM_ARRAY_TASK_ID} - 1 ))]} )
     python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets}
+
+    # extract only sensitivity results from pickle file
+    pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
+    pickle_si="../data_out/${bb}/sensitivity_nsets${nsets}.pkl"
+    python extract_si_results_from_pkl.py -i ${pickle_all} -o ${pickle_si}
     
+    # plot results
     python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -i ../data_out/${bb}/results_nsets${nsets}.pkl
     pdfcrop ../data_out/${bb}/${bb}.pdf
     mv ../data_out/${bb}/${bb}-crop.pdf ../data_out/${bb}/${bb}.pdf
