@@ -68,19 +68,15 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path+'/lib')
 
-
-import numpy as np
-import glob
 import pickle
-import sobol_index
-import autostring
 
 with open(input_file, "rb") as ff:
+
+    # load data (input_file)
     setup = pickle.load(ff)
 
-    print(input_file)
-    print(setup['ntime'])
-    print(setup['sobol_indexes']['paras'].keys())
-    print(setup['sobol_indexes']['process_options'].keys())
-    print(setup['sobol_indexes']['processes'].keys())
+    # save sobol indexes in extra file (output_file)
+    dict_si = {}
+    dict_si['sobol_indexes'] = setup['sobol_indexes']
+    pickle.dump( dict_si, open( output_file, "wb" ) )
 
