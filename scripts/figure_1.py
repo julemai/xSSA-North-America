@@ -21,7 +21,8 @@
 
 # source ~/python_env/bin/activate    (has basemap)
 # run figure_1.py -p test.pdf     -i "01010000 02135200"
-# run figure_1.py -p figure_1.pdf -i "14189000 03MD001 06306300 02YA001 11433500 05387440 09404900 02100500 03518000 02196484" 
+# run figure_1.py -p figure_1.pdf -i "14189000 03MD001 06306300 02YA001 11433500 05387440 09404900 02100500 03518000 02196484"
+# run figure_1.py -p figure_1.pdf -i "01049500 01085500 01389800 01449000 01533400 01BG009 01BJ007 02012500 02034000 02100500 02196484 02197320 02358789 02404400 02433000 02469761 02OG026 02PL005 02YA001 03065000 03085000 03090500 03202400 03212980 03319000 03351000 03362500 03404500 03518000 03565000 03BF001 03MB002 03MD001 04062011 04087170 04212000 04293500 05051300 05051522 05074500 05082625 05247500 05330000 05369000 05387440 05487980 05505000 05TG003 06102000 06208500 06306300 06308500 06334630 06347000 06436800 06467600 06600100 06651500 06690500 06710000 06756100 06791800 06862850 06873460 06920500 06GA001 07260500 07311800 07363400 07BB003 07EB002 08022500 08079575 08111010 08143600 08164500 08177000 08179000 08317400 08401900 08GD008 08LB047 08NA002 08NA006 08NH130 09058030 09288100 09304600 09332100 09404900 09508500 10016900 10028500 10308200 11128000 11152050 11333500 11397500 11433500 12452800 13037500 13152500 13302000 13309220 13316500 13317000 14026000 14054000 14120000 14189000 14238000 14315700" -n 
 
 from __future__ import print_function
 
@@ -44,7 +45,8 @@ import argparse
 pngbase   = ''
 pdffile   = ''
 usetex    = False
-basin_id  = None
+basin_ids = None
+donolabel = False
 
 parser  = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                   description='''Plot basin shape.''')
@@ -57,14 +59,17 @@ parser.add_argument('-p', '--pdffile', action='store',
 parser.add_argument('-t', '--usetex', action='store_true', default=usetex, dest="usetex",
                     help="Use LaTeX to render text in pdf.")
 parser.add_argument('-i', '--basin_ids', action='store',
-                    default=basin_id, dest='basin_ids', metavar='basin_ids',
+                    default=basin_ids, dest='basin_ids', metavar='basin_ids',
                     help='Basin ID of basins to plot. Mandatory. (default: None).')
+parser.add_argument('-n', '--donolabel', action='store_true', default=donolabel, dest="donolabel",
+                  help="If set, catchments are not annoteted.")
 
 args      = parser.parse_args()
 pngbase   = args.pngbase
 pdffile   = args.pdffile
 usetex    = args.usetex
 basin_ids = args.basin_ids
+donolabel = args.donolabel
 
 # convert basin_ids to list 
 basin_ids = basin_ids.strip()
@@ -344,15 +349,15 @@ lon_0     =   (llcrnrlon+urcrnrlon)/2.0  # center of the map
 #             lat_1=44, lat_2=44, 
 #             resolution='i') # Lambert conformal
 map4 = Basemap(projection='lcc',
-            llcrnrlon=llcrnrlon, urcrnrlon=urcrnrlon, llcrnrlat=llcrnrlat, urcrnrlat=urcrnrlat,
-            lat_1=lat_1, lat_2=lat_2, lat_0=lat_0, lon_0=lon_0,
-            area_thresh=6000., # only large lakes
-            resolution='i') # Lambert conformal
+                width=9000000,height=7000000,
+                lat_1=45.,lat_2=55,lat_0=50,lon_0=-107.,
+                area_thresh=6000., # only large lakes
+                resolution='i') # Lambert conformal
           
 # draw parallels and meridians.
 # labels: [left, right, top, bottom]
 map4.drawparallels(np.arange(-80.,81.,6.),  labels=[1,0,0,0], dashes=[1,1], linewidth=0.25, color='0.5')
-map4.drawmeridians(np.arange(-180.,181.,10.),labels=[0,0,0,1], dashes=[1,1], linewidth=0.25, color='0.5')
+map4.drawmeridians(np.arange(-180.,181.,15.),labels=[0,0,0,1], dashes=[1,1], linewidth=0.25, color='0.5')
 
 # draw cooastlines and countries
 map4.drawcoastlines(linewidth=0.3)
@@ -389,17 +394,18 @@ for ibasin_id,basin_id in enumerate(basin_ids):
                 yymin = np.nanmin(coords[start:end,1])
                 yymax = np.nanmax(coords[start:end,1])
 
-                # annotate
-                xpt, ypt  = map4(np.mean(coords[start:end,0]), np.mean(coords[start:end,1]))   # center of shape
-                x2,  y2   = (1.1,0.95-ibasin_id*0.1)                                           # position of text
-                sub.annotate(basin_id,
-                    xy=(xpt, ypt),   xycoords='data',
-                    xytext=(x2, y2), textcoords='axes fraction', #textcoords='data',
-                    fontsize=8,
-                    verticalalignment='center',horizontalalignment='left',
-                    arrowprops=dict(arrowstyle="->",relpos=(0.0,1.0),linewidth=0.6),
-                    zorder=400
-                    )
+                if not(donolabel):
+                    # annotate
+                    xpt, ypt  = map4(np.mean(coords[start:end,0]), np.mean(coords[start:end,1]))   # center of shape
+                    x2,  y2   = (1.1,0.95-ibasin_id*0.1)                                           # position of text
+                    sub.annotate(basin_id,
+                        xy=(xpt, ypt),   xycoords='data',
+                        xytext=(x2, y2), textcoords='axes fraction', #textcoords='data',
+                        fontsize=8,
+                        verticalalignment='center',horizontalalignment='left',
+                        arrowprops=dict(arrowstyle="->",relpos=(0.0,1.0),linewidth=0.6),
+                        zorder=400
+                        )
 
         print("Basin: ",basin_id)
         print("   --> lon range = [",xxmin,",",xxmax,"]")
@@ -415,7 +421,8 @@ for ibasin_id,basin_id in enumerate(basin_ids):
                  linestyle='None', marker='o', markeredgecolor=icolor, markerfacecolor=icolor,
                  markersize=2.0, markeredgewidth=0.0)
 
-        sub.annotate(basin_id,
+        if not(donolabel):
+            sub.annotate(basin_id,
                     xy=(xpt, ypt),   xycoords='data',
                     xytext=(x2, y2), textcoords='axes fraction', #textcoords='data',
                     fontsize=8,
