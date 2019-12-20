@@ -49,8 +49,8 @@ if __name__ == '__main__':
     import argparse
     import numpy as np
 
-    plotname    = ''
-    outtype     = ''
+    pngbase     = ''
+    pdffile     = ''
     usetex      = False
     serif       = False
     nsets       = 1000          # number of Sobol sequences
@@ -59,15 +59,14 @@ if __name__ == '__main__':
     
     parser   = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                       description='''Plots results of RAVEN sensitivity analysis and correlates it to different indicators such as temeparture.''')
-    parser.add_argument('-p', '--plotname', action='store',
-                        default=plotname, dest='plotname', metavar='plotname',
-                        help='Name of plot output file for types pdf, html or d3, '
-                        'and name basis for type png (default: '+__file__[0:__file__.rfind(".")]+').')
     parser.add_argument('-s', '--serif', action='store_true', default=serif, dest="serif",
                     help="Use serif font; default sans serif.")
-    parser.add_argument('-t', '--type', action='store',
-                        default=outtype, dest='outtype', metavar='outtype',
-                        help='Output type is pdf, png, html, or d3 (default: open screen windows).')
+    parser.add_argument('-g', '--pngbase', action='store',
+                    default=pngbase, dest='pngbase', metavar='pngbase',
+                    help='Name basis for png output files (default: open screen window).')
+    parser.add_argument('-p', '--pdffile', action='store',
+                    default=pdffile, dest='pdffile', metavar='pdffile',
+                    help='Name of pdf output file (default: open screen window).')
     parser.add_argument('-u', '--usetex', action='store_true', default=usetex, dest="usetex",
                         help="Use LaTeX to render text in pdf, png and html.")
     parser.add_argument('-n', '--nsets', action='store',
@@ -81,8 +80,8 @@ if __name__ == '__main__':
                     help='Basin ID of basins to plot. Mandatory. (default: None).')
 
     args     = parser.parse_args()
-    plotname = args.plotname
-    outtype  = args.outtype
+    pdffile = args.pdffile
+    pngbase = args.pngbase
     serif    = args.serif
     usetex   = args.usetex
     nsets    = np.int(args.nsets)
@@ -231,58 +230,99 @@ if __name__ == '__main__':
                                                                       np.array([ sobol_indexes[ib]['processes']['wsti'][variable][iiproc] for ib in basin_ids ]) )[1,0]
 
 
-# -------------------------------------------------------------------------
-# Function definition - if function
-#
-
-    # Check input
-    outtype = outtype.lower()
-    outtypes = ['', 'pdf', 'png', 'html', 'd3']
-    if outtype not in outtypes:
-        print('\nError: output type must be in ', outtypes)
-        import sys
-        sys.exit()
-    
-    t1 = time.time()
-
-    if (outtype == 'd3'):
-        try:
-            import mpld3
-        except:
-            print("No mpld3 found. Use output type html instead of d3.")
-            outtype = 'html'
-
-
     # -------------------------------------------------------------------------
-    # Setup
+    # Customize plots
     #
-    dowhite    = False  # True: black background, False: white background
-    title      = False   # True: title on plots, False: no plot titles
-    textbox    = False  # if true: additional information is set as text box within plot
-    textbox_x  = 0.95
-    textbox_y  = 0.85
 
-    # -------------------------------------------------------------------------
-    # Setup Calculations
-    #
-    if dowhite:
-        fgcolor = 'white'
-        bgcolor = 'black'
+    if (pdffile == ''):
+        if (pngbase == ''):
+            outtype = 'x'
+        else:
+            outtype = 'png'
     else:
-        fgcolor = 'black'
-        bgcolor = 'white'
+        outtype = 'pdf'
 
-    # colors
-    cols1 = color.get_brewer('YlOrRd9', rgb=True)
-    cols1 = color.get_brewer( 'WhiteYellowOrangeRed',rgb=True)[30:]
-    cols1 = color.get_brewer( 'dark_rainbow_256',rgb=True)   # blue to red
+    # Main plot
+    nrow        = 3           # # of rows of subplots per figure
+    ncol        = 2           # # of columns of subplots per figure
+    hspace      = 0.10        # x-space between subplots
+    vspace      = 0.05        # y-space between subplots
+    textsize    = 13          # standard text size
+    dxabc       = 0.90        # % of (max-min) shift to the right from left y-axis for a,b,c,... labels
+    dyabc       = 0.05        # % of (max-min) shift up from lower x-axis for a,b,c,... labels
 
-    cols2 = color.get_brewer('YlOrRd9', rgb=True)[::-1]
-    cols2 = color.get_brewer( 'WhiteYellowOrangeRed',rgb=True)[30:][::-1]
-    cols2 = color.get_brewer( 'dark_rainbow_256',rgb=True)[::-1]  # red to blue
+    lwidth      = 1.5         # linewidth
+    elwidth     = 1.0         # errorbar line width
+    alwidth     = 1.0         # axis line width
+    msize       = 1.0         # marker size
+    mwidth      = 1.0         # marker edge width
+    mcol1       = color.colours('red')        # primary marker colour
+    mcol2       = '0.0'                     # secondary
+    mcol3       = (202/255.,0/255.,32/255.) # third
+    mcols       = color.colours(['blue','red','darkgray','orange','darkblue','black'])
+    lcol1       = color.colours('blue')   # primary line colour
+    lcol2       = '0.0'
+    lcol3       = '0.0'
+    lcols       = mcols
 
-    cols3 = [cols2[0],cols2[95],cols2[-1]]  # red, yellow, blue
-    cols3 = [color.colours('gray'),cols2[0],color.colours('white')]  # gray red white
+    # Map
+    delon   = 60.        # spacing between longitude labels
+    delat   = 60.        # spacing between latitude labels
+    xsize   = textsize   # axis label size
+    ncolor  = 10         # # of colors in plot
+    cbsize  = textsize   # colorbar label size
+
+    # Legend
+    llxbbox     = -0.01       # y-anchor legend bounding box
+    llybbox     = 0.04        # y-anchor legend bounding box
+    llrspace    = 0.          # spacing between rows in legend
+    llcspace    = 1.0         # spacing between columns in legend
+    llhtextpad  = 0.4         # the pad between the legend handle and text
+    llhlength   = 1.5         # the length of the legend handles
+    frameon     = False       # if True, draw a frame around the legend. If None, use rc
+
+    # PNG
+    dpi         = 300
+    transparent = False
+    bbox_inches = 'tight'
+    pad_inches  = 0
+
+    import matplotlib as mpl
+    if (outtype == 'pdf'):
+        mpl.use('PDF') # set directly after import matplotlib
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        # Customize: http://matplotlib.sourceforge.net/users/customizing.html
+        mpl.rc('ps', papersize='a4', usedistiller='xpdf') # ps2pdf
+        mpl.rc('figure', figsize=(8.27,11.69)) # a4 portrait
+        if usetex:
+            mpl.rc('text', usetex=True)
+        else:
+            #mpl.rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+            mpl.rc('font',**{'family':'serif','serif':['times']})
+        mpl.rc('text.latex', unicode=True)
+    elif (outtype == 'png'):
+        mpl.use('Agg') # set directly after import matplotlib
+        import matplotlib.pyplot as plt
+        mpl.rc('figure', figsize=(8.27,11.69)) # a4 portrait
+        if usetex:
+            mpl.rc('text', usetex=True)
+        else:
+            #mpl.rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+            mpl.rc('font',**{'family':'serif','serif':['times']})
+        mpl.rc('text.latex', unicode=True)
+        mpl.rc('savefig', dpi=dpi, format='png')
+    else:
+        import matplotlib.pyplot as plt
+        mpl.rc('figure', figsize=(4./5.*8.27,4./5.*11.69)) # a4 portrait
+    mpl.rc('font', size=textsize)
+    mpl.rc('lines', linewidth=lwidth, color='black')
+    mpl.rc('axes', linewidth=alwidth, labelcolor='black')
+    mpl.rc('path', simplify=False) # do not remove
+
+
+
+
 
     # -------------------------------------------------------------------------
     # Set processes and options
@@ -315,143 +355,21 @@ if __name__ == '__main__':
     potme_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[205]
     perco_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[230]
     soilm_color = (0.7,0.7,0.7) #jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[255]
-    
-    # -------------------------------------------------------------------------
-    # Plotting of results
-    # -------------------------------------------------------------------------
-    # Main plot
-    ncol        = 3           # number columns
-    nrow        = 5           # number of rows
-    textsize    = 10          # standard text size
-    dxabc       = 0.03          # % of (max-min) shift to the right from left y-axis for a,b,c,... labels
-    dyabc       = 0.92          # % of (max-min) shift up from lower x-axis for a,b,c,... labels
-    dxsig       = 1.23        # % of (max-min) shift to the right from left y-axis for signature
-    dysig       = -0.075      # % of (max-min) shift up from lower x-axis for signature
-    dxtit       = 0           # % of (max-min) shift to the right from left y-axis for title
-    dytit       = 1.2         # % of (max-min) shift up from lower x-axis for title
-    hspace      = 0.16        # x-space between subplots
-    vspace      = 0.06        # y-space between subplots
 
-    lwidth      = 0.5         # linewidth
-    elwidth     = 0.5         # errorbar line width
-    alwidth     = 1.0         # axis line width
-    glwidth     = 0.5         # grid line width
-    msize       = 8.0         # marker size
-    mwidth      = 0.0         # marker edge width
-    mcol1       = '0.7'       # primary marker colour
-    mcol2       = '0.0'       # secondary
-    mcol3       = '0.0'       # third
-    mcols       = color.colours(['blue','green','yellow','orange','red','darkgray','darkblue','black','darkgreen','gray'])
-    lcol0       = color.colours('black')    # line colour
-    lcol1       = color.colours('blue')     # line colour
-    lcol2       = color.colours('green')    # line colour
-    lcol3       = color.colours('yellow')   # line colour
-    lcols       = color.colours(['black','blue','green','yellow'])
-    markers     = ['o','v','s','^']
 
-    # Legend
-    llxbbox     = 0.98        # x-anchor legend bounding box
-    llybbox     = 0.98        # y-anchor legend bounding box
-    llrspace    = 0.          # spacing between rows in legend
-    llcspace    = 1.0         # spacing between columns in legend
-    llhtextpad  = 0.4         # the pad between the legend handle and text
-    llhlength   = 1.5         # the length of the legend handles
-    frameon     = False       # if True, draw a frame around the legend. If None, use rc
-      
-    import matplotlib as mpl
-    import matplotlib.patches as patches
-    from matplotlib.lines import Line2D
-    mpl.use('Agg')
+    # -------------------------------------------------------------------------
+    # Plot
+    #
+    t1 = time.time()
     
     if (outtype == 'pdf'):
-        mpl.use('PDF') # set directly after import matplotlib
-        import matplotlib.pyplot as plt
-        from matplotlib.backends.backend_pdf import PdfPages
-        # Customize: http://matplotlib.sourceforge.net/users/customizing.html
-        mpl.rc('ps', papersize='a4', usedistiller='xpdf') # ps2pdf
-        # mpl.rc('figure', figsize=(8.27,11.69)) # a4 portrait
-        mpl.rc('figure', figsize=(7.48,9.06)) # WRR maximal figure size
-        if usetex:
-            mpl.rc('text', usetex=True)
-            if not serif:
-                #   r'\usepackage{helvet}',                             # use Helvetica
-                mpl.rcParams['text.latex.preamble'] = [
-                    r'\usepackage[math,lf,mathtabular,footnotefigures]{MyriadPro}', # use MyriadPro font
-                    r'\renewcommand{\familydefault}{\sfdefault}',       # normal text font is sans serif
-                    r'\figureversion{lining,tabular}',
-                    r'\usepackage{wasysym}',                            # for permil symbol (load after MyriadPro)
-                    ]
-            else:
-                mpl.rcParams['text.latex.preamble'] = [
-                    r'\usepackage{wasysym}'                     # for permil symbol
-                    ]
-        else:
-            if serif:
-                mpl.rcParams['font.family']     = 'serif'
-                mpl.rcParams['font.sans-serif'] = 'Times'
-            else:
-                mpl.rcParams['font.family']     = 'sans-serif'
-                mpl.rcParams['font.sans-serif'] = 'Arial'       # Arial, Verdana
-    elif (outtype == 'png') or (outtype == 'html') or (outtype == 'd3'):
-        mpl.use('Agg') # set directly after import matplotlib
-        import matplotlib.pyplot as plt
-        # mpl.rc('figure', figsize=(8.27,11.69)) # a4 portrait
-        mpl.rc('figure', figsize=(7.48,9.06)) # WRR maximal figure size
-        if usetex:
-            mpl.rc('text', usetex=True)
-            if not serif:
-                #   r'\usepackage{helvet}',                             # use Helvetica
-                mpl.rcParams['text.latex.preamble'] = [
-                    r'\usepackage[math,lf,mathtabular,footnotefigures]{MyriadPro}', # use MyriadPro font
-                    r'\renewcommand{\familydefault}{\sfdefault}',       # normal text font is sans serif
-                    r'\figureversion{lining,tabular}',
-                    r'\usepackage{wasysym}',                            # for permil symbol (load after MyriadPro)
-                    ]
-            else:
-                mpl.rcParams['text.latex.preamble'] = [
-                    r'\usepackage{wasysym}'                     # for permil symbol
-                    ]
-        else:
-            if serif:
-                mpl.rcParams['font.family']     = 'serif'
-                mpl.rcParams['font.sans-serif'] = 'Times'
-            else:
-                mpl.rcParams['font.family']     = 'sans-serif'
-                mpl.rcParams['font.sans-serif'] = 'Arial'       # Arial, Verdana
-        mpl.rc('savefig', dpi=dpi, format='png')
-    else:
-        import matplotlib.pyplot as plt
-        # mpl.rc('figure', figsize=(4./5.*8.27,4./5.*11.69)) # a4 portrait
-        mpl.rc('figure', figsize=(7.48,9.06)) # WRR maximal figure size
-    mpl.rc('text.latex', unicode=True)
-    mpl.rc('font', size=textsize)
-    mpl.rc('path', simplify=False) # do not remove
-    # print(mpl.rcParams)
-    mpl.rc('axes', linewidth=alwidth, edgecolor=fgcolor, facecolor=bgcolor, labelcolor=fgcolor)
-    mpl.rc('figure', edgecolor=bgcolor, facecolor='grey')
-    mpl.rc('grid', color=fgcolor)
-    mpl.rc('lines', linewidth=lwidth, color=fgcolor)
-    mpl.rc('patch', edgecolor=fgcolor)
-    mpl.rc('savefig', edgecolor=bgcolor, facecolor=bgcolor)
-    mpl.rc('patch', edgecolor=fgcolor)
-    mpl.rc('text', color=fgcolor)
-    mpl.rc('xtick', color=fgcolor)
-    mpl.rc('ytick', color=fgcolor)
-
-    if (outtype == 'pdf'):
-        pdffile = plotname+'.pdf'
         print('Plot PDF ', pdffile)
         pdf_pages = PdfPages(pdffile)
     elif (outtype == 'png'):
-        print('Plot PNG ', plotname)
+        print('Plot PNG ', pngbase)
     else:
         print('Plot X')
-
-    t1  = time.time()
-    ifig = 0
-
-    figsize = mpl.rcParams['figure.figsize']
-    mpl.rcParams['axes.linewidth'] = lwidth
+    # figsize = mpl.rcParams['figure.figsize']
 
     
     ifig = 0
