@@ -15,7 +15,7 @@
 # job-id  :: ${SLURM_ARRAY_JOB_ID}
 # task-id :: ${SLURM_ARRAY_TASK_ID}
 
-ntasks=100
+ntasks=645
 nsets=1000
 
 # nsets =   10 -->      7.0min/basin  --> 6.8h for each of 100 tasks                 #SBATCH --mem-per-cpu=3G
@@ -23,7 +23,7 @@ nsets=1000
 # nsets = 1000 -->    18:00:00/basin  --> 6-18:00:00 for 645 tasks (9 basins each)   #SBATCH --mem-per-cpu=50G
 
 # change to right dir
-cd /home/julemai/projects/rpp-hwheater/julemai/sa-usgs-canopex/scripts
+cd /home/julemai/projects/rpp-hwheater/julemai/xSSA-North-America/scripts
 
 # set Python env
 source ../env-3.5/bin/activate

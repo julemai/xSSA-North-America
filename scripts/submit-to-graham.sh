@@ -49,7 +49,7 @@
 nsets=1000
 
 # change to right dir
-cd /home/julemai/projects/rpp-hwheater/julemai/sa-usgs-canopex/scripts
+cd /home/julemai/projects/rpp-hwheater/julemai/xSSA-North-America/scripts
 
 # set Python env
 source ../env-3.5/bin/activate
