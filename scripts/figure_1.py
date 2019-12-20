@@ -229,7 +229,7 @@ if (outtype == 'pdf'):
         #mpl.rc('font',**{'family':'serif','serif':['times']})
     mpl.rc('text.latex', unicode=True)
 elif (outtype == 'png'):
-    mpl.use('Agg') # set directly after import matplotlib
+    mpl.use('TkAgg') # set directly after import matplotlib
     import matplotlib.pyplot as plt
     mpl.rc('figure', figsize=(8.27,11.69)) # a4 portrait
     if usetex:
@@ -248,7 +248,13 @@ mpl.rc('axes', linewidth=alwidth, labelcolor='black')
 mpl.rc('path', simplify=False) # do not remove
 
 from matplotlib.patches import Rectangle, Circle, Polygon
-from mpl_toolkits.basemap import Basemap
+import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+import matplotlib.ticker as mticker
+import cartopy.feature as cfeature
+import shapely.geometry as sgeom
+from copy import copy
+# from mpl_toolkits.basemap import Basemap
 
 
 # colors
@@ -274,7 +280,7 @@ else:
     
     #c.insert(2,c[2]) # same colour for both soil moistures
     ocean_color = (151/256., 183/256., 224/256.)
-    ocean_color = color.get_brewer('accent5', rgb=True)[-1]
+    # ocean_color = color.get_brewer('accent5', rgb=True)[-1]
 
     cc = color.get_brewer('dark_rainbow_256', rgb=True)
     cc = cc[::-1] # reverse colors
@@ -291,6 +297,68 @@ else:
     
     cc = color.get_brewer('Paired6', rgb=True)
     cmap = mpl.colors.ListedColormap(cc)
+
+def find_side(ls, side):
+    """
+    Given a shapely LineString which is assumed to be rectangular, return the
+    line corresponding to a given side of the rectangle.
+    
+    """
+    minx, miny, maxx, maxy = ls.bounds
+    points = {'left': [(minx, miny), (minx, maxy)],
+              'right': [(maxx, miny), (maxx, maxy)],
+              'bottom': [(minx, miny), (maxx, miny)],
+              'top': [(minx, maxy), (maxx, maxy)],}
+    return sgeom.LineString(points[side])
+
+
+def lambert_xticks(ax, ticks):
+    """Draw ticks on the bottom x-axis of a Lambert Conformal projection."""
+    te = lambda xy: xy[0]
+    lc = lambda t, n, b: np.vstack((np.zeros(n) + t, np.linspace(b[2], b[3], n))).T
+    xticks, xticklabels = _lambert_ticks(ax, ticks, 'bottom', lc, te)
+    ax.xaxis.tick_bottom()
+    ax.set_xticks(xticks)
+    ax.set_xticklabels([ax.xaxis.get_major_formatter()(xtick) for xtick in xticklabels])
+    
+
+def lambert_yticks(ax, ticks):
+    """Draw ricks on the left y-axis of a Lamber Conformal projection."""
+    te = lambda xy: xy[1]
+    lc = lambda t, n, b: np.vstack((np.linspace(b[0], b[1], n), np.zeros(n) + t)).T
+    yticks, yticklabels = _lambert_ticks(ax, ticks, 'left', lc, te)
+    ax.yaxis.tick_left()
+    ax.set_yticks(yticks)
+    ax.set_yticklabels([ax.yaxis.get_major_formatter()(ytick) for ytick in yticklabels])
+
+def _lambert_ticks(ax, ticks, tick_location, line_constructor, tick_extractor):
+    """Get the tick locations and labels for an axis of a Lambert Conformal projection."""
+    outline_patch = sgeom.LineString(ax.outline_patch.get_path().vertices.tolist())
+    axis = find_side(outline_patch, tick_location)
+    n_steps = 30
+    extent = ax.get_extent(ccrs.PlateCarree())
+    _ticks = []
+    for t in ticks:
+        xy = line_constructor(t, n_steps, extent)
+        proj_xyz = ax.projection.transform_points(ccrs.Geodetic(), xy[:, 0], xy[:, 1])
+        xyt = proj_xyz[..., :2]
+        ls = sgeom.LineString(xyt.tolist())
+        locs = axis.intersection(ls)
+        if not locs:
+            tick = [None]
+        else:
+            tick = tick_extractor(locs.xy)
+        _ticks.append(tick[0])
+    # Remove ticks that aren't visible:    
+    ticklabels = copy(ticks)
+    while True:
+        try:
+            index = _ticks.index(None)
+        except ValueError:
+            break
+        _ticks.pop(index)
+        ticklabels.pop(index)
+    return _ticks, ticklabels
 
     
 # -------------------------------------------------------------------------
@@ -323,115 +391,147 @@ iplot += 1
 
 #     [left, bottom, width, height]
 pos = [0.1,0.8,0.45,0.15]
-sub = fig.add_axes(pos)
+sub = fig.add_axes(pos, projection=ccrs.LambertConformal())
 #sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
 
-# Map: Europe
-# m = Basemap(projection='lcc', llcrnrlon=-9, llcrnrlat=35.6, urcrnrlon=25.3, urcrnrlat=53,
-#             lat_1=50, lat_2=70, lon_0=0, resolution='i') # Lambert conformal
-# Map: USA
-# m = Basemap(projection='lcc',
-#             llcrnrlon=-119, llcrnrlat=22, urcrnrlon=-64, urcrnrlat=49,
-#             lat_1=33, lat_2=45, lon_0=-95,
-#             resolution='i') # Lambert conformal
-# Map: Canada - Saguenay-Lac-St-Jean region
-llcrnrlon =  -119.0
-urcrnrlon =  -45.0
-llcrnrlat =   22.0
-urcrnrlat =   60.0
-lat_1     =   (llcrnrlat+urcrnrlat)/2.0  # first  "equator"
-lat_2     =   (llcrnrlat+urcrnrlat)/2.0  # second "equator"
-lat_0     =   (llcrnrlat+urcrnrlat)/2.0  # center of the map
-lon_0     =   (llcrnrlon+urcrnrlon)/2.0  # center of the map
-# m = Basemap(projection='lcc',
-#             llcrnrlon=-80, llcrnrlat=43, urcrnrlon=-75, urcrnrlat=47,
-#             lon_0=-77.5, lat_0=43, 
-#             lat_1=44, lat_2=44, 
-#             resolution='i') # Lambert conformal
-map4 = Basemap(projection='lcc',
-                width=9000000,height=7000000,
-                lat_1=45.,lat_2=55,lat_0=50,lon_0=-107.,
-                area_thresh=6000., # only large lakes
-                resolution='i') # Lambert conformal
+sub.coastlines(resolution='500m')
+sub.add_feature(cfeature.COASTLINE, linewidth=0.5)
+sub.add_feature(cfeature.OCEAN, color=ocean_color)
+sub.set_extent([-150, -55, 22, 75], ccrs.PlateCarree())
+
+# *must* call draw in order to get the axis boundary used to add ticks:
+fig.canvas.draw()
+
+# Define gridline locations and draw the lines using cartopy's built-in gridliner:
+xticks = [-170, -150, -130, -110, -90, -70, -50, -30, -10, 10, 30, 50, 70, 90, 110, 130, 150, 170]
+yticks = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
+sub.gridlines(xlocs=xticks, ylocs=yticks,linewidth=0.3, color='black', alpha=0.5, linestyle='-')
+
+# Label the end-points of the gridlines using the custom tick makers:
+sub.xaxis.set_major_formatter(LONGITUDE_FORMATTER) 
+sub.yaxis.set_major_formatter(LATITUDE_FORMATTER)
+lambert_xticks(sub, xticks)
+lambert_yticks(sub, yticks)
+
+# gl = sub.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+#                   linewidth=0.3, color='black', alpha=0.5, linestyle='-')
+# gl.xlabels_top  = False
+# gl.ylabels_left = False
+# gl.xlines       = True
+# gl.ylines       = True
+# gl.xlocator     = mticker.FixedLocator([-170, -150, -130, -110, -90, -70, -50, -30])
+# #gl.ylocator     = mticker.FixedLocator([-180, -45, 0, 45, 180])
+# gl.xformatter   = LONGITUDE_FORMATTER
+# gl.yformatter   = LATITUDE_FORMATTER
+# #gl.xlabel_style = {'size': 15, 'color': 'gray'}
+# #gl.xlabel_style = {'color': 'red', 'weight': 'bold'}
+
+# # Map: Europe
+# # m = Basemap(projection='lcc', llcrnrlon=-9, llcrnrlat=35.6, urcrnrlon=25.3, urcrnrlat=53,
+# #             lat_1=50, lat_2=70, lon_0=0, resolution='i') # Lambert conformal
+# # Map: USA
+# # m = Basemap(projection='lcc',
+# #             llcrnrlon=-119, llcrnrlat=22, urcrnrlon=-64, urcrnrlat=49,
+# #             lat_1=33, lat_2=45, lon_0=-95,
+# #             resolution='i') # Lambert conformal
+# # Map: Canada - Saguenay-Lac-St-Jean region
+# llcrnrlon =  -119.0
+# urcrnrlon =  -45.0
+# llcrnrlat =   22.0
+# urcrnrlat =   60.0
+# lat_1     =   (llcrnrlat+urcrnrlat)/2.0  # first  "equator"
+# lat_2     =   (llcrnrlat+urcrnrlat)/2.0  # second "equator"
+# lat_0     =   (llcrnrlat+urcrnrlat)/2.0  # center of the map
+# lon_0     =   (llcrnrlon+urcrnrlon)/2.0  # center of the map
+# # m = Basemap(projection='lcc',
+# #             llcrnrlon=-80, llcrnrlat=43, urcrnrlon=-75, urcrnrlat=47,
+# #             lon_0=-77.5, lat_0=43, 
+# #             lat_1=44, lat_2=44, 
+# #             resolution='i') # Lambert conformal
+# map4 = Basemap(projection='lcc',
+#                 width=9000000,height=7000000,
+#                 lat_1=45.,lat_2=55,lat_0=50,lon_0=-107.,
+#                 area_thresh=6000., # only large lakes
+#                 resolution='i') # Lambert conformal
           
-# draw parallels and meridians.
-# labels: [left, right, top, bottom]
-map4.drawparallels(np.arange(-80.,81.,6.),  labels=[1,0,0,0], dashes=[1,1], linewidth=0.25, color='0.5')
-map4.drawmeridians(np.arange(-180.,181.,15.),labels=[0,0,0,1], dashes=[1,1], linewidth=0.25, color='0.5')
+# # draw parallels and meridians.
+# # labels: [left, right, top, bottom]
+# map4.drawparallels(np.arange(-80.,81.,6.),  labels=[1,0,0,0], dashes=[1,1], linewidth=0.25, color='0.5')
+# map4.drawmeridians(np.arange(-180.,181.,15.),labels=[0,0,0,1], dashes=[1,1], linewidth=0.25, color='0.5')
 
-# draw cooastlines and countries
-map4.drawcoastlines(linewidth=0.3)
-map4.drawmapboundary(fill_color=ocean_color, linewidth=0.3)
-map4.drawcountries(color='black', linewidth=0.3)
-map4.fillcontinents(color='white', lake_color=ocean_color)
+# # draw cooastlines and countries
+# map4.drawcoastlines(linewidth=0.3)
+# map4.drawmapboundary(fill_color=ocean_color, linewidth=0.3)
+# map4.drawcountries(color='black', linewidth=0.3)
+# map4.fillcontinents(color='white', lake_color=ocean_color)
 
-coord_catch   = []
-for ibasin_id,basin_id in enumerate(basin_ids):
+# coord_catch   = []
+# for ibasin_id,basin_id in enumerate(basin_ids):
 
-    shapefilename =  "../data_in/data_obs/"+basin_id+"/shape.dat"
-    icolor = cc[ibasin_id%len(cc)]
+#     shapefilename =  "../data_in/data_obs/"+basin_id+"/shape.dat"
+#     icolor = cc[ibasin_id%len(cc)]
 
-    # if shapefile exists --> plot largest of the shapes
-    if ( os.path.exists(shapefilename) ):
-        # [lon lat]
-        coords = fread(shapefilename, skip=1, separator=';')
-        coord_catch.append(coords)
+#     # if shapefile exists --> plot largest of the shapes
+#     if ( os.path.exists(shapefilename) ):
+#         # [lon lat]
+#         coords = fread(shapefilename, skip=1, separator=';')
+#         coord_catch.append(coords)
     
-        # add catchment shape to plot
-        nan_idx = np.where(np.isnan(coords[:,0]))[0]                                  # nan's, e.g., array([    0,     6, 16896, 16898])
-        nshapes = len(nan_idx)-1                                                      #        e.g., 3
-        longest_shape = np.where(np.diff(nan_idx)==np.max(np.diff(nan_idx)))[0][0]    #        e.g., #1
-        for ishape in range(nshapes):
+#         # add catchment shape to plot
+#         nan_idx = np.where(np.isnan(coords[:,0]))[0]                                  # nan's, e.g., array([    0,     6, 16896, 16898])
+#         nshapes = len(nan_idx)-1                                                      #        e.g., 3
+#         longest_shape = np.where(np.diff(nan_idx)==np.max(np.diff(nan_idx)))[0][0]    #        e.g., #1
+#         for ishape in range(nshapes):
 
-            start = nan_idx[ishape]+1
-            end   = nan_idx[ishape+1]
-            if ishape == longest_shape:
-                # plot only longest shape
-                sub.add_patch(Polygon(np.transpose(map4(coords[start:end,0],coords[start:end,1])), facecolor=icolor, edgecolor='black', linewidth=0.0,zorder = 300, alpha=0.8))
+#             start = nan_idx[ishape]+1
+#             end   = nan_idx[ishape+1]
+#             if ishape == longest_shape:
+#                 # plot only longest shape
+#                 sub.add_patch(Polygon(np.transpose(map4(coords[start:end,0],coords[start:end,1])), facecolor=icolor, edgecolor='black', linewidth=0.0,zorder = 300, alpha=0.8))
 
-                xxmin = np.nanmin(coords[start:end,0])
-                xxmax = np.nanmax(coords[start:end,0])
-                yymin = np.nanmin(coords[start:end,1])
-                yymax = np.nanmax(coords[start:end,1])
+#                 xxmin = np.nanmin(coords[start:end,0])
+#                 xxmax = np.nanmax(coords[start:end,0])
+#                 yymin = np.nanmin(coords[start:end,1])
+#                 yymax = np.nanmax(coords[start:end,1])
 
-                if not(donolabel):
-                    # annotate
-                    xpt, ypt  = map4(np.mean(coords[start:end,0]), np.mean(coords[start:end,1]))   # center of shape
-                    x2,  y2   = (1.1,0.95-ibasin_id*0.1)                                           # position of text
-                    sub.annotate(basin_id,
-                        xy=(xpt, ypt),   xycoords='data',
-                        xytext=(x2, y2), textcoords='axes fraction', #textcoords='data',
-                        fontsize=8,
-                        verticalalignment='center',horizontalalignment='left',
-                        arrowprops=dict(arrowstyle="->",relpos=(0.0,1.0),linewidth=0.6),
-                        zorder=400
-                        )
+#                 if not(donolabel):
+#                     # annotate
+#                     xpt, ypt  = map4(np.mean(coords[start:end,0]), np.mean(coords[start:end,1]))   # center of shape
+#                     x2,  y2   = (1.1,0.95-ibasin_id*0.1)                                           # position of text
+#                     sub.annotate(basin_id,
+#                         xy=(xpt, ypt),   xycoords='data',
+#                         xytext=(x2, y2), textcoords='axes fraction', #textcoords='data',
+#                         fontsize=8,
+#                         verticalalignment='center',horizontalalignment='left',
+#                         arrowprops=dict(arrowstyle="->",relpos=(0.0,1.0),linewidth=0.6),
+#                         zorder=400
+#                         )
 
-        print("Basin: ",basin_id)
-        print("   --> lon range = [",xxmin,",",xxmax,"]")
-        print("   --> lat range = [",yymin,",",yymax,"]")
+#         print("Basin: ",basin_id)
+#         print("   --> lon range = [",xxmin,",",xxmax,"]")
+#         print("   --> lat range = [",yymin,",",yymax,"]")
 
-    # shapefile doesnt exist only plot dot at location
-    else:   
-        xpt = map4(dict_metadata[basin_id]["lon"],dict_metadata[basin_id]["lat"])[0]
-        ypt = map4(dict_metadata[basin_id]["lon"],dict_metadata[basin_id]["lat"])[1]
-        x2,  y2   = (1.1,0.95-ibasin_id*0.1)
+#     # shapefile doesnt exist only plot dot at location
+#     else:   
+#         xpt = map4(dict_metadata[basin_id]["lon"],dict_metadata[basin_id]["lat"])[0]
+#         ypt = map4(dict_metadata[basin_id]["lon"],dict_metadata[basin_id]["lat"])[1]
+#         x2,  y2   = (1.1,0.95-ibasin_id*0.1)
         
-        sub.plot(xpt, ypt,
-                 linestyle='None', marker='o', markeredgecolor=icolor, markerfacecolor=icolor,
-                 markersize=2.0, markeredgewidth=0.0)
+#         sub.plot(xpt, ypt,
+#                  linestyle='None', marker='o', markeredgecolor=icolor, markerfacecolor=icolor,
+#                  markersize=2.0, markeredgewidth=0.0)
 
-        if not(donolabel):
-            sub.annotate(basin_id,
-                    xy=(xpt, ypt),   xycoords='data',
-                    xytext=(x2, y2), textcoords='axes fraction', #textcoords='data',
-                    fontsize=8,
-                    verticalalignment='center',horizontalalignment='left',
-                    arrowprops=dict(arrowstyle="->",relpos=(0.0,1.0),linewidth=0.6),
-                    zorder=400
-                    )
-        print("Basin: ",basin_id)
-        print("   --> lat/lon = [",dict_metadata[basin_id]["lat"],",",dict_metadata[basin_id]["lon"],"]")
+#         if not(donolabel):
+#             sub.annotate(basin_id,
+#                     xy=(xpt, ypt),   xycoords='data',
+#                     xytext=(x2, y2), textcoords='axes fraction', #textcoords='data',
+#                     fontsize=8,
+#                     verticalalignment='center',horizontalalignment='left',
+#                     arrowprops=dict(arrowstyle="->",relpos=(0.0,1.0),linewidth=0.6),
+#                     zorder=400
+#                     )
+#         print("Basin: ",basin_id)
+#         print("   --> lat/lon = [",dict_metadata[basin_id]["lat"],",",dict_metadata[basin_id]["lon"],"]")
         
     
 
