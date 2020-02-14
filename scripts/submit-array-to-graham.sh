@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # submit with:
-#       sbatch submit-to-graham.sh   
+#       sbatch submit-array-to-graham.sh   
 
 #SBATCH --mem-per-cpu=50G                          # memory; default unit is megabytes
 #SBATCH --output=/dev/null
@@ -101,3 +101,8 @@ fi
 #           --> derived avg temp is nodata --> line 19787: -4.1490000 1.68000000 --> max temp changed to 1.681
 # 08DD001   --> ERROR : CGauge::Initialize: excessively small or large average temperature (<-60C or >60C) reported at gauge
 #           --> 119.46062622 --> 19.46062622
+
+
+
+# 1000 sets
+# job 25208219
