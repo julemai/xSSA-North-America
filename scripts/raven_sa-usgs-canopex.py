@@ -43,9 +43,10 @@ if __name__ == '__main__':
     import argparse
     import numpy as np
 
-    nsets       = 100           # number of Sobol sequences
-    nboot       = 1             # Set to 1 for single run of SI and STI calculation
+    nsets       = 100                # number of Sobol sequences
+    nboot       = 1                  # Set to 1 for single run of SI and STI calculation
     basin_id    = None
+    tmp_folder  = "/tmp/juletest/"   # temporary folder to run model
     
     parser   = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                       description='''Benchmark example to test Sensitivity Analysis for models with multiple process options.''')
@@ -58,11 +59,15 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--basin_ids', action='store',
                         default=basin_id, dest='basin_ids', metavar='basin_ids',
                         help='Basin ID of basins to analyze. Mandatory. (default: None).')
+    parser.add_argument('-t', '--tmp_folder', action='store',
+                        default=tmp_folder, dest='tmp_folder', metavar='tmp_folder',
+                        help='Temporary directory to run the model. (default: "/tmp/juletest/").')
 
-    args     = parser.parse_args()
-    nboot    = np.int(args.nboot)
-    nsets    = np.int(args.nsets)
-    basin_ids = args.basin_ids
+    args       = parser.parse_args()
+    nboot      = np.int(args.nboot)
+    nsets      = np.int(args.nsets)
+    basin_ids  = args.basin_ids
+    tmp_folder = args.tmp_folder
 
     # convert basin_ids to list 
     basin_ids = basin_ids.strip()
@@ -304,7 +309,7 @@ if __name__ == '__main__':
             # ---------------
             # create a run folder
             # ---------------
-            tmp_folder = "/tmp/juletest/"+str(basin_id)+"/"+str(run_id) # "/tmp/juletest" #  TODO a generic folder name in /tmp
+            tmp_folder = tmp_folder+"/"+str(basin_id)+"/"+str(run_id) # "/tmp/juletest" #  TODO a generic folder name in /tmp
             raven_exe_name = "../data_in/data_model/Raven.exe"
             raven_obs_folder = "../data_in/data_obs/"+basin_id+""
 
