@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 Juliane Mai - juliane.mai(at)uwaterloo.ca
+# Copyright 2019-2020 Juliane Mai - juliane.mai(at)uwaterloo.ca
 #
 # License
 # This file is part of Juliane Mai's personal code library.
@@ -465,7 +465,9 @@ if __name__ == '__main__':
                                                                                           basin_prop,
                                                                                           constants=None,
                                                                                           nsets=nsets,
-                                                                                          save=outpath+"/results_nsets"+str(nsets)+".pkl")
+                                                                                          save_msgpack=outpath+"/results_nsets"+str(nsets)+".msgpack")
+                                                                                          #save_json=outpath+"/results_nsets"+str(nsets)+".json")
+                                                                                          #save_pkl=outpath+"/results_nsets"+str(nsets)+".pkl")
 
             keys = sobol_indexes_raven['paras']['si'].keys()
 
