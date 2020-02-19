@@ -5,9 +5,9 @@
 # submit with:
 #       sbatch plot.sh   
 
-#SBATCH --mem-per-cpu=2G                          # memory; default unit is megabytes
+#SBATCH --mem-per-cpu=10G                          # memory; default unit is megabytes
 #SBATCH --output=/dev/null
-#SBATCH --time=02:00:00
+#SBATCH --time=03:00:00
 #SBATCH --account=rpp-hwheater 
 #SBATCH --mail-user=juliane.mai@uwaterloo.ca
 #SBATCH --mail-type=FAIL
