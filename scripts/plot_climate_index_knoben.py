@@ -155,7 +155,7 @@ if __name__ == '__main__':
     # ----------------------------------
     climate_indexes = {}
 
-    file_climate_indexes = '../data_in/basin_metadata/basin_climate_index_knoben.txt'
+    file_climate_indexes = '../data_in/basin_metadata/basin_climate_index_knoben_snow-raven.txt'
     ff = open(file_climate_indexes, "r")
     lines = ff.readlines()
     ff.close()
@@ -180,104 +180,6 @@ if __name__ == '__main__':
 
     if not(found):
         raise ValueError('Basin ID not found in '+file_climate_indexes)
-
-
-
-
-    # # ----------------------------------
-    # # calculate climate indicators
-    # # ----------------------------------
-    # file_climate_indexes = '../data_in/basin_metadata/basin_climate_index_knoben.txt'
-    # ff_clim = open(file_climate_indexes, "w")
-    # ff_clim.write("basin_id; aridity I_m; seasonality I_m,r; fraction precipitation as snow f_S; red; green; blue \n")
-    
-    # climate_indexes = {}
-    # for basin_id in basin_ids:
-
-    #     # ----------------------------------
-    #     # basin properties
-    #     # ----------------------------------
-    #     basin_prop = {}
-
-    #     file_gauge_info = '../data_in/basin_metadata/basin_physical_characteristics.txt'
-    #     ff = open(file_gauge_info, "r")
-    #     lines = ff.readlines()
-    #     ff.close()
-
-    #     found = False
-    #     for ill,ll in enumerate(lines):
-    #         if ill > 0:
-    #             tmp = ll.strip().split(';')
-    #             if (tmp[0] == basin_id):
-    #                 found = True
-    #                 # basin_id; basin_name; lat; lon; area_km2; elevation_m; slope_deg; forest_frac 
-                    
-    #                 basin_prop['id']           = str(basin_id)
-    #                 basin_prop['name']         = str(tmp[1].strip())
-    #                 basin_prop['lat_deg']      = np.float(tmp[2].strip())
-    #                 basin_prop['lon_deg']      = np.float(tmp[3].strip())
-    #                 basin_prop['area_km2']     = np.float(tmp[4].strip())
-    #                 basin_prop['elevation_m']  = np.float(tmp[5].strip())
-    #                 basin_prop['slope_deg']    = np.float(tmp[6].strip()) 
-    #                 basin_prop['forest_frac']  = np.float(tmp[7].strip())
-
-    #     if not(found):
-    #         raise ValueError('Basin ID not found in '+file_gauge_info)
-
-    #     # ----------------------------------------
-    #     # read forcings
-    #     # ----------------------------------------
-    #     raven_forcings_file = "../data_in/data_obs/"+basin_id+"/model_basin_mean_forcing_Santa-Clara.rvt"
-                
-    #     ff = open(raven_forcings_file, "r")
-    #     content = ff.readlines()
-    #     ff.close()
-        
-    #     # get headers
-    #     # :Parameters     TEMP_DAILY_MIN   TEMP_DAILY_MAX   PRECIP
-    #     head = content[2].strip().split()[1:]
-    #     idx_precip = [ head.index(v) for v in head if 'PRECIP' in v ][0]
-    #     head_precip = np.array(head)[idx_precip]
-    #     idx_tmin = [ head.index(v) for v in head if 'TEMP_DAILY_MIN' in v ][0]
-    #     head_tmin = np.array(head)[idx_tmin]
-    #     idx_tmax = [ head.index(v) for v in head if 'TEMP_DAILY_MAX' in v ][0]
-    #     head_tmax = np.array(head)[idx_tmax]
-
-    #     # get data
-    #     data      = np.array( [ [ np.float(icc) for icc in cc.strip().split() ] for cc in content[4:-1] ])
-    #     precip    = data[:,idx_precip]
-    #     tmin      = data[:,idx_tmin]
-    #     tmax      = data[:,idx_tmax]
-    #     tave      = (tmax+tmin)/2.
-
-    #     # get time array
-    #     timeline = content[1].strip().split()
-    #     refdate = timeline[0]
-    #     reftime = timeline[1]
-    #     deltat = np.float(timeline[2]) # in [days]
-    #     ntime  = np.int(timeline[3])
-    #     reference_date = datetime.datetime(np.int(refdate.split('-')[0]),np.int(refdate.split('-')[1]),np.int(refdate.split('-')[2]),
-    #                       np.int(reftime.split(':')[0]),np.int(reftime.split(':')[1]),np.int(reftime.split(':')[2]))
-    #     ttime = np.array( [ reference_date + datetime.timedelta(days=itime*deltat) for itime in range(ntime) ] )
-
-    #     # derive PET
-    #     doy = np.array([ ittime.timetuple().tm_yday   for ittime in ttime ])   # day of the year
-    #     lat = np.ones(ntime) * basin_prop['lat_deg']                             # make latitudes same shape as doy and temp
-    #     pet = pet_oudin(tave, lat, doy)
-
-    #     climate_index = climate_index_knoben(ttime, precip, tave, pet, color=True, indicators=True)
-    #     climate_indexes[basin_id] = tuple([climate_index['color']['red'],climate_index['color']['green'],climate_index['color']['blue']])
-
-    #     ff_clim.write(    basin_id+"; "+
-    #                       astr(climate_index['indicators']['aridity'],prec=4)+"; "+
-    #                       astr(climate_index['indicators']['seasonality'],prec=4)+"; "+
-    #                       astr(climate_index['indicators']['precip_as_snow'],prec=4)+"; "+
-    #                       astr(climate_index['color']['red'],prec=4)+"; "+
-    #                       astr(climate_index['color']['green'],prec=4)+"; "+
-    #                       astr(climate_index['color']['blue'],prec=4)+"\n")
-
-    # ff_clim.close()
-    # print("Wrote: "+file_climate_indexes)
         
 # -------------------------------------------------------------------------
 # Customize plots
