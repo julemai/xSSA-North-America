@@ -5,22 +5,24 @@
 
 #SBATCH --mem-per-cpu=50G                          # memory; default unit is megabytes
 #SBATCH --output=/dev/null
-#SBATCH --time=6-18:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --account=rpp-hwheater 
 #SBATCH --mail-user=juliane.mai@uwaterloo.ca
 #SBATCH --mail-type=FAIL
 #SBATCH --job-name=sa-canopex
-#SBATCH --array=1-645
+#SBATCH --array=1-601
 
 # job-id  :: ${SLURM_ARRAY_JOB_ID}
 # task-id :: ${SLURM_ARRAY_TASK_ID}
 
-ntasks=645
+# ntasks=645 # (9 basins per task --> time=6-18:00:00 --> 5798 basins total)
+ntasks=601   # (5 basins per task --> time=6-18:00:00 --> remaining 3002 basins)
 nsets=1000
 
 # nsets =   10 -->      7.0min/basin  --> 6.8h for each of 100 tasks                 #SBATCH --mem-per-cpu=3G
 # nsets =    2 -->      1.6min/basin  --> 1h 50min for each of 100 tasks             #SBATCH --mem-per-cpu=3G
 # nsets = 1000 -->    18:00:00/basin  --> 6-18:00:00 for 645 tasks (9 basins each)   #SBATCH --mem-per-cpu=50G
+# nsets = 1000 -->    18:00:00/basin  --> 5-00:00:00 for 601 tasks (5 basins each)   #SBATCH --mem-per-cpu=50G
 
 # change to right dir
 cd /home/julemai/projects/rpp-hwheater/julemai/xSSA-North-America/scripts
@@ -71,7 +73,7 @@ if [[ ${step} -gt 0 ]] ; then
     for bb in ${basins_to_process} ; do
 
 	# actual analysis
-	python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets}
+	python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets} -t ${SLURM_TMPDIR}
 
 	# extract only sensitivity results from pickle file
 	pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
@@ -104,5 +106,8 @@ fi
 
 
 
-# 1000 sets
+# 1000 sets, 5798 basins
 # job 25208219
+
+# 1000 sets, 3002 basins
+# job 28161689
