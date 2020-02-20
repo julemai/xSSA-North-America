@@ -59,7 +59,7 @@ if [[ ${dofig3} -eq 1 ]] ; then
     # plot only basins already analysed
     #basins=$( \ls ~/projects/rpp-hwheater/julemai/xSSA-North-America/data_out/0161*/results_nsets1000.pkl | rev | cut -d '/' -f 2 | rev )
     basins=$( \ls ~/projects/rpp-hwheater/julemai/xSSA-North-America/data_out/*/results_nsets1000.pkl | rev | cut -d '/' -f 2 | rev )
-    python figure_3.py -p figure_3.pdf -i "${basins}"
+    python figure_3.py -p figure_3.pdf -i "${basins}" -a "../data_in/basin_metadata/basin_climate_index_knoben_snow-raven.txt"
     pdfcrop figure_3.pdf
     mv figure_3-crop.pdf ../figures/figure_3.pdf
     rm figure_3.pdf
@@ -70,6 +70,6 @@ if [[ ${dofig4} -eq 1 ]] ; then
     #
     # all basins
     basins=$( \ls -d ~/projects/rpp-hwheater/julemai/xSSA-North-America/data_out/* | rev | cut -d '/' -f 1 | rev )
-    python figure_4.py -g figure_4_ -i "${basins}"
+    python figure_4.py -g figure_4_ -i "${basins}" -a "../data_in/basin_metadata/basin_climate_index_knoben_snow-raven.txt"
     mv figure_4_0001.png ../figures/figure_4.png
 fi
