@@ -4,7 +4,7 @@
 #       sbatch submit-to-graham.sh     
 
 #SBATCH --account=rpp-hwheater                     # your group 
-#SBATCH --mem-per-cpu=10G                          # memory; default unit is megabytes
+#SBATCH --mem-per-cpu=20G                          # memory; default unit is megabytes
 #SBATCH --mail-user=juliane.mai@uwaterloo.ca       # email address for notifications
 #SBATCH --mail-type=FAIL                           # email send only in case of failure
 #SBATCH --time=0-18:00                             # time (DD-HH:MM);
@@ -45,9 +45,9 @@
 # -------------------
 # testing MESSAGEPACK
 # ------------------
-# job ID:    -> 10G             (changed run_ID folder names to a, b, and c only; no iset)
+# job ID:    -> 20G             (changed run_ID folder names to a, b, and c only; no iset)
 # nsets = 1000 --> 18h/basin 
-# requested:   18h/basin    10GB
+# requested:   18h/basin    20GB
 # used:
 
 
@@ -81,12 +81,12 @@ if [ ! -e ../data_out/${bb}/results_nsets${nsets}.pkl ] ; then
 
     # actual analysis
     bb=$( echo ${basins[$(( ${SLURM_ARRAY_TASK_ID} - 1 ))]} )
-    python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets}
+    python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets} -t ${SLURM_TMPDIR}
 
-    # # extract only sensitivity results from pickle file
-    # pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
-    # pickle_si="../data_out/${bb}/sensitivity_nsets${nsets}.pkl"
-    # python extract_si_results_from_pkl.py -i ${pickle_all} -o ${pickle_si}
+    # extract only sensitivity results from pickle file
+    pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
+    pickle_si="../data_out/${bb}/sensitivity_nsets${nsets}.pkl"
+    python extract_si_results_from_pkl.py -i ${pickle_all} -o ${pickle_si}
     
     # plot results
     python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -i ../data_out/${bb}/results_nsets${nsets}.pkl
