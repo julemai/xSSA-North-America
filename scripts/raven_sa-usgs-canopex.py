@@ -68,6 +68,7 @@ if __name__ == '__main__':
     nsets      = np.int(args.nsets)
     basin_ids  = args.basin_ids
     tmp_folder = args.tmp_folder
+    print('tmp_folder: ',tmp_folder)
 
     # convert basin_ids to list 
     basin_ids = basin_ids.strip()
@@ -192,7 +193,7 @@ if __name__ == '__main__':
             raise ValueError('Basin ID not found in '+file_gauge_info)
     
 
-        def model_function_raven(paras, weights, basin_prop, constants=None, run_id=None):
+        def model_function_raven(paras, weights, basin_prop, constants=None, run_id=None, tmp_folder=tmp_folder):
             # input:
             #     paras      ... list of model parameters scaled to their range;
             #                    values for all N model parameters have to be provided
@@ -470,9 +471,9 @@ if __name__ == '__main__':
                                                                                           basin_prop,
                                                                                           constants=None,
                                                                                           nsets=nsets,
-                                                                                          save_msgpack=outpath+"/results_nsets"+str(nsets)+".msgpack")
+                                                                                          #save_msgpack=outpath+"/results_nsets"+str(nsets)+".msgpack")
                                                                                           #save_json=outpath+"/results_nsets"+str(nsets)+".json")
-                                                                                          #save_pkl=outpath+"/results_nsets"+str(nsets)+".pkl")
+                                                                                          save_pkl=outpath+"/results_nsets"+str(nsets)+".pkl")
 
             keys = sobol_indexes_raven['paras']['si'].keys()
 
