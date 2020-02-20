@@ -23,8 +23,20 @@ pid=$$
 
 source  ~/projects/rpp-hwheater/julemai/xSSA-North-America/env-3.5/bin/activate
 
+doclimindex=1   # Derives Knoben climate indexes for all basins
+
+if [[ ${doclimindex} -eq 1 ]] ; then
+    # calculates climate indexes of all basins
+    #
+    # all basins
+    basins=$( \ls -d ~/projects/rpp-hwheater/julemai/xSSA-North-America/data_out/* | rev | cut -d '/' -f 1 | rev )
+    python calculate_climate_indexes_knoben.py -i "${basins}" -o "../data_in/basin_metadata/basin_climate_index_knoben_snow-raven.txt"  -s "raven"
+    python calculate_climate_indexes_knoben.py -i "${basins}" -o "../data_in/basin_metadata/basin_climate_index_knoben_snow-knoben.txt" -s "knoben"
+fi
+
 dofig1=0  # Plot sensitivities of all 9 processes on a map with basin shapes
-dofig2=1  # Plot climate indexes map
+dofig3=1  # Plot correlations of climate indexes and properties with sensitivities of processes
+dofig4=0  # Plot map of climate indexes of all basins
 
 if [[ ${dofig1} -eq 1 ]] ; then
     # plot only basins already analysed
@@ -41,9 +53,23 @@ if [[ ${dofig1} -eq 1 ]] ; then
     mv figure_1_0009.png ../figures/figure_1_Percolation.png
 fi
 
-if [[ ${dofig2} -eq 1 ]] ; then
-    # plot all basins
+if [[ ${dofig3} -eq 1 ]] ; then
+    # plot correlations of climate indexes and properties with sensitivities of processes
+    #
+    # plot only basins already analysed
+    #basins=$( \ls ~/projects/rpp-hwheater/julemai/xSSA-North-America/data_out/0161*/results_nsets1000.pkl | rev | cut -d '/' -f 2 | rev )
+    basins=$( \ls ~/projects/rpp-hwheater/julemai/xSSA-North-America/data_out/*/results_nsets1000.pkl | rev | cut -d '/' -f 2 | rev )
+    python figure_3.py -p figure_3.pdf -i "${basins}"
+    pdfcrop figure_3.pdf
+    mv figure_3-crop.pdf ../figures/figure_3.pdf
+    rm figure_3.pdf
+fi
+
+if [[ ${dofig4} -eq 1 ]] ; then
+    # plot map of climate indexes of all basins
+    #
+    # all basins
     basins=$( \ls -d ~/projects/rpp-hwheater/julemai/xSSA-North-America/data_out/* | rev | cut -d '/' -f 1 | rev )
-    python figure_2.py -g figure_2_ -i "${basins}"
-    mv figure_2_0001.png ../figures/figure_2.png
+    python figure_4.py -g figure_4_ -i "${basins}"
+    mv figure_4_0001.png ../figures/figure_4.png
 fi
