@@ -105,10 +105,12 @@ if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(dir_path+'/lib')
 
-    import numpy    as np
-    import datetime as datetime
-    import pandas   as pd
+    import numpy          as np
+    import datetime       as datetime
+    import pandas         as pd
+    import scipy.optimize as opt
     import time
+    from scipy.stats import spearmanr
 
     t1 = time.time()
     
@@ -122,6 +124,9 @@ if __name__ == '__main__':
     from   abc2plot             import abc2plot                # in lib/
     from   brewer               import get_brewer              # in lib/
     from   str2tex              import str2tex                 # in lib/
+    import functions                                           # in lib/
+    #from   .general_functions   import logistic_offset_p      # in lib/
+    #from   .fit_functions       import cost_square            # in lib/
 
     # -------------------------------------------------------------------------
     # Read basin metadata
@@ -131,18 +136,20 @@ if __name__ == '__main__':
     head = fread("../data_in/basin_metadata/basin_physical_characteristics.txt",skip=1,separator=';',header=True)
     meta_float, meta_string = fsread("../data_in/basin_metadata/basin_physical_characteristics.txt",skip=1,separator=';',cname=["lat","lon","area_km2","elevation_m","slope_deg","forest_frac"],sname=["basin_id","basin_name"])
 
-    dict_metadata = {}
+    properties = ["lat","lon","area_km2","elevation_m","slope_deg","forest_frac"]
+    
+    dict_properties = {}
     for ibasin in range(len(meta_float)):
         dict_basin = {}
         dict_basin["name"]        = meta_string[ibasin][1]
-        dict_basin["lat"]         = meta_float[ibasin][0]
-        dict_basin["lon"]         = meta_float[ibasin][1]
-        dict_basin["area_km2"]    = meta_float[ibasin][2]
-        dict_basin["elevation_m"] = meta_float[ibasin][3]
-        dict_basin["slope_deg"]   = meta_float[ibasin][4]
-        dict_basin["forest_frac"] = meta_float[ibasin][5]
+        dict_basin[properties[0]] = meta_float[ibasin][0]
+        dict_basin[properties[1]] = meta_float[ibasin][1]
+        dict_basin[properties[2]] = meta_float[ibasin][2]
+        dict_basin[properties[3]] = meta_float[ibasin][3]
+        dict_basin[properties[4]] = meta_float[ibasin][4]
+        dict_basin[properties[5]] = meta_float[ibasin][5]
     
-        dict_metadata[meta_string[ibasin][0]] = dict_basin
+        dict_properties[meta_string[ibasin][0]] = dict_basin
 
     # ----------------------------------
     # read climate indicators
@@ -150,7 +157,7 @@ if __name__ == '__main__':
     climate_indexes = {}
     indicators = ['aridity', 'seasonality', 'precip_as_snow']
 
-    file_climate_indexes = '../data_in/basin_metadata/basin_climate_index_knoben.txt'
+    file_climate_indexes = '../data_in/basin_metadata/basin_climate_index_knoben_snow-raven.txt'
     ff = open(file_climate_indexes, "r")
     lines = ff.readlines()
     ff.close()
@@ -183,7 +190,7 @@ if __name__ == '__main__':
     # Read sensitivity results of (all) processes
     # -------------------------------------------------------------------------
     # names of processes
-    processes = ['Infiltration','Quickflow','Evaporation','Baseflow','Snow Balance', 'Convolution (Surface Runoff)', 'Convolution (Delayed Runoff)', 'Potential Melt', 'Percolation']
+    processes = ['Infiltration','Quickflow','Evaporation','Baseflow','Snow\n Balance', 'Convolution\n (Surface Runoff)', 'Convolution\n (Delayed Runoff)', 'Potential\n Melt', 'Percolation']
     sobol_indexes = {}
     for ibasin_id,basin_id in enumerate(basin_ids):
 
@@ -209,10 +216,11 @@ else:
     outtype = 'pdf'
     
 # Main plot
-nrow        = len(processes)    # # of rows of subplots per figure
-ncol        = len(indicators)   # # of columns of subplots per figure
+dummy_rows  = 3
+nrow        = len(processes)+dummy_rows    # # of rows of subplots per figure
+ncol        = len(indicators)+len(properties)   # # of columns of subplots per figure
 hspace      = 0.02         # x-space between subplots
-vspace      = 0.05        # y-space between subplots
+vspace      = 0.02        # y-space between subplots
 right       = 0.9         # right space on page
 textsize    = 6           # standard text size
 dxabc       = 1.0         # % of (max-min) shift to the right from left y-axis for a,b,c,... labels
@@ -223,12 +231,12 @@ dysig       = -0.05       # % of (max-min) shift up from lower x-axis for signat
 dxtit       = 0           # % of (max-min) shift to the right from left y-axis for title
 dytit       = 1.3         # % of (max-min) shift up from lower x-axis for title
 
-lwidth      = 1.5         # linewidth
+lwidth      = 1.0         # linewidth
 elwidth     = 1.0         # errorbar line width
 alwidth     = 0.5         # axis line width
 glwidth     = 0.5         # grid line width
-msize       = 3.0         # marker size
-mwidth      = 1.0         # marker edge width
+msize       = 1.0         # marker size
+mwidth      = 0.2         # marker edge width
 mcol1       = color.colours('blue')      # primary marker colour
 mcol2       = color.colours('red')       # secondary
 mcol3       = color.colours('red')       # third
@@ -336,7 +344,7 @@ else:
     #      (116./255.,173./255.,209./255.), # percolation
     #      ( 69./255.,117./255.,180./255.), # routing
     #      ( 49./255., 54./255.,149./255.)] # geology
-    c  = get_brewer('rdylbu11', rgb=True)
+    c  = color.get_brewer('rdylbu11', rgb=True)
     tmp = c.pop(5)   # rm yellow
     np.random.shuffle(c)
     
@@ -438,18 +446,6 @@ else:
 # figsize = mpl.rcParams['figure.figsize']
 
 
-
-# sort basins starting with largest
-areas = []
-for ibasin_id,basin_id in enumerate(basin_ids):
-    areas.append(dict_metadata[basin_id]["area_km2"])
-areas = np.array(areas)
-idx_areas = np.argsort(areas)[::-1]
-basin_ids = np.array(basin_ids)[idx_areas]
-
-
-
-
 ifig = 0
 
 # -------------------------------------------------------------------------
@@ -465,6 +461,17 @@ fig = plt.figure(ifig)
 # Correlation of process sensitivities with climate indicators
 # -----------------------------------------
 
+infil_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[20]
+quick_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[55]
+evapo_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[80]
+basef_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[105]
+snowb_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[130]
+convs_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[155]
+convd_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[180]
+potme_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[205]
+perco_color = color.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[230]
+mcol = [infil_color, quick_color, evapo_color, basef_color, snowb_color, convs_color, convd_color, potme_color, perco_color ] 
+
 for iprocess, process in enumerate(processes):
     for iindicator, indicator in enumerate(indicators):
 
@@ -474,11 +481,173 @@ for iprocess, process in enumerate(processes):
 
         wsti  = [ sobol_indexes[basin_id][iprocess]    for basin_id in basin_ids ]
         indic = [ climate_indexes[basin_id][indicator] for basin_id in basin_ids ]
-        mark1 = sub.scatter(indic,wsti)
-        plt.setp(mark1, linestyle='None', color=mcol[idischarge], linewidth=0.0,
-                     marker='o', markeredgecolor=mcol[idischarge], markerfacecolor='None',
-                     markersize=msize, markeredgewidth=mwidth,
-                     label=str2tex(head_sink[idischarge],usetex=usetex))
+        mark1 = sub.plot(indic,wsti)
+
+        # spearman_rank_correlation
+        coef, p = spearmanr(indic, wsti)
+        if np.abs(coef) > 0.65:
+            fontweight = 1000
+            color='k'
+
+            # --------------------------
+            # fit logistic function
+            # --------------------------
+            xx = np.array(indic)
+            yy = np.array(wsti)
+            idx = np.argsort(xx)
+            xx = xx[idx]
+            yy = yy[idx]
+            inflection_point = np.mean(xx[ np.where( yy == np.median(yy) )[0] ])
+            pini=np.array([np.mean(yy[-100:]), (np.mean(yy[-100:])-np.mean(yy[:100]))/(np.mean(xx[-100:])-np.mean(xx[:100])), inflection_point, np.mean(yy[:100])]) # [y-max, steepness, inflection point, offset]
+            popti, f, d = opt.fmin_l_bfgs_b(functions.fit_functions.cost_square, pini,
+                                        args=(functions.general_functions.logistic_offset_p,xx,yy),
+                                        approx_grad=1,
+                                        bounds=[(None,None),(None,None),(None,None),(None,None)],#,(0.,0.2)],
+                                        iprint=0, disp=0)
+            print('')
+            print('Indicator: ',indicator, '(rho = ',astr(coef,prec=2),')')
+            print('Initial guess: ', astr(pini,prec=4))
+            print('Params of logistic function: ', astr(popti,prec=4))
+
+            # plot fitted line
+            fit_wsti = functions.general_functions.logistic_offset_p(xx,popti)
+            line2    = plt.plot(xx, fit_wsti)
+            plt.setp(line2, linestyle='-', linewidth=lwidth, color='k', marker='None', label=str2tex('$L$',usetex=usetex))
+
+            
+        else:
+            fontweight = 'normal'
+            color = (0.7,0.7,0.7)
+        sub.text(0.5, 1.0, str2tex('$\\rho = '+astr(coef,prec=2)+'$',usetex=usetex), transform=sub.transAxes,
+                 rotation=0, fontsize=textsize-1, weight=fontweight, color=color,
+                 horizontalalignment='center', verticalalignment='bottom')
+
+        # x-labels only last row
+        if ((iplot-1) // ncol == nrow - dummy_rows - 1):
+            xlabel=str2tex(indicator.replace('_', ' ').
+                                            replace('aridity',         'aridity [-]').
+                                            replace('seasonality',     'seasonality [-]').
+                                            replace('precip as snow',  'P as snow [-]'),usetex=usetex)
+        else:
+            xlabel=''
+
+        # y-labels only first column in every second row
+        if ((iplot) % ncol == 1 and ((iplot-1) // ncol) % 2 == 1):
+            ylabel=str2tex("Total Sobol' Index $ST_i$",usetex=usetex)
+        else:
+            ylabel=''
+
+        # x-ticks only in last row
+        if ((iplot-1) // ncol < nrow - dummy_rows - 1):
+            # sub.axes.get_xaxis().set_visible(False)
+            sub.axes.get_xaxis().set_ticks([])
+        else:
+            plt.xticks(rotation=90)
+
+        # y-ticks only in first column
+        if (iplot-1)%ncol != 0:
+            # sub.axes.get_yaxis().set_visible(False)
+            sub.axes.get_yaxis().set_ticks([])
+
+        plt.setp(mark1, linestyle='None', color=mcol[iprocess], linewidth=0.0,
+             marker='o', markeredgecolor=mcol[iprocess], markerfacecolor='None',
+             markersize=msize, markeredgewidth=mwidth,
+             label=str2tex(process,usetex=usetex))
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+
+    for ipropertie, propertie in enumerate(properties):
+
+        iplot += 1
+
+        sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace))
+
+        wsti  = [ sobol_indexes[basin_id][iprocess]    for basin_id in basin_ids ]
+        prop = [ dict_properties[basin_id][propertie]  for basin_id in basin_ids ]
+        
+        if propertie == 'area_km2':
+            mark1 = sub.semilogx(prop,wsti) 
+        else:
+            mark1 = sub.plot(prop,wsti)
+
+        # spearman_rank_correlation
+        coef, p = spearmanr(prop, wsti)
+        if np.abs(coef) > 0.65:
+            fontweight = 1000
+            color='k'
+
+            # --------------------------
+            # fit logistic function
+            # --------------------------
+            xx = np.array(prop)
+            yy = np.array(wsti)
+            idx = np.argsort(xx)
+            xx = xx[idx]
+            yy = yy[idx]
+            inflection_point = np.mean(xx[ np.where( yy == np.median(yy) )[0] ])
+            pini=np.array([np.mean(yy[-100:]), (np.mean(yy[-100:])-np.mean(yy[:100]))/(np.mean(xx[-100:])-np.mean(xx[:100])), inflection_point, np.mean(yy[:100])]) # [y-max, steepness, inflection point, offset]
+            popti, f, d = opt.fmin_l_bfgs_b(functions.fit_functions.cost_square, pini,
+                                        args=(functions.general_functions.logistic_offset_p,xx,yy),
+                                        approx_grad=1,
+                                        bounds=[(None,None),(None,None),(None,None),(None,None)],#,(0.,0.2)],
+                                        iprint=0, disp=0)
+            print('')
+            print('Property: ',propertie, '(rho = ',astr(coef,prec=2),')')
+            print('Initial guess: ', astr(pini,prec=4))
+            print('Params of logistic function: ', astr(popti,prec=4))
+
+            # plot fitted line
+            fit_wsti = functions.general_functions.logistic_offset_p(xx,popti)
+            line2    = plt.plot(xx, fit_wsti)
+            plt.setp(line2, linestyle='-', linewidth=lwidth, color='k', marker='None', label=str2tex('$L$',usetex=usetex))
+        else:
+            fontweight = 'normal'
+            color = (0.7,0.7,0.7)
+        sub.text(0.5, 1.0, str2tex('$\\rho = '+astr(coef,prec=2)+'$',usetex=usetex), transform=sub.transAxes,
+                 rotation=0, fontsize=textsize-1, fontweight=fontweight, color=color,
+                 horizontalalignment='center', verticalalignment='bottom')
+
+        # x-labels only last row
+        if ((iplot-1) // ncol == nrow - dummy_rows - 1):
+            xlabel=str2tex(propertie.replace('_', ' ').
+                                            replace(' m',    ' [m]').
+                                            replace(' km2',  ' [km$^2$]').
+                                            replace(' frac', ' [-]').
+                                            replace(' deg',  ' [$^\circ$]').
+                                            replace('lat',   'lat [$^\circ$N]').
+                                            replace('lon',   'lon [$^\circ$W]'),usetex=usetex)
+        else:
+            xlabel=''
+
+        # y-labels only first column in every second row
+        if ((iplot) % ncol == 1 and ((iplot-1) // ncol) % 2 == 1):
+            ylabel=str2tex("Total Sobol' Index $ST_i$",usetex=usetex)
+        else:
+            ylabel=''
+
+        # x-ticks only in last row
+        if ((iplot-1) // ncol < nrow - dummy_rows - 1):
+            # sub.axes.get_xaxis().set_visible(False)
+            sub.axes.get_xaxis().set_ticks([])
+        else:
+            plt.xticks(rotation=90)
+
+        # y-ticks only in first column
+        if (iplot-1)%ncol != 0:
+            # sub.axes.get_yaxis().set_visible(False)
+            sub.axes.get_yaxis().set_ticks([])
+
+        plt.setp(mark1, linestyle='None', color=mcol[iprocess], linewidth=0.0,
+             marker='o', markeredgecolor=mcol[iprocess], markerfacecolor='None',
+             markersize=msize, markeredgewidth=mwidth,
+             label=str2tex(process,usetex=usetex))
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+
+    if (iplot % ncol == 0):  # last column
+        sub.text(1.2, 0.5, str2tex(process.replace('_', ' '),usetex=usetex), transform=sub.transAxes,
+                 rotation=90, fontsize=textsize,
+                 horizontalalignment='center', verticalalignment='center')
     
 
 if (outtype == 'pdf'):
