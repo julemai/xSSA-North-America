@@ -20,7 +20,8 @@
 #
 # run with:
 #     run figure_2.py -t pdf -p figure_2 -n 10
-#     python figure_2.py -t pdf -p 03MD001 -i ../data_out/03MD001/results_nsets1000.pkl
+#     python figure_2.py -t pdf -p 03MD001  -i ../data_out/03MD001/results_nsets1000.pkl
+#     python figure_2.py -t pdf -p 01013500 -i ../data_out/01013500/results_nsets2.msgpack
 
 # files=$( \ls ../data_out/*/results_nsets1000.pkl )
 # for ff in $files ; do bb=$( echo $ff | cut -d '/' -f 3 ) ; echo ${bb} ; python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -i ../data_out/${bb}/results_nsets1000.pkl ; pdfcrop ../data_out/${bb}/${bb}.pdf ; mv ../data_out/${bb}/${bb}-crop.pdf ../data_out/${bb}/${bb}.pdf ; echo "---------------" ; echo " " ; done
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     nsets       = 100            # number of Sobol sequences
     nboot       = 1             # Set to 1 for single run of SI and STI calculation
     variable    = 'Q'           # model output variable
-    picklefile  = None          # default "results_nsets<nsets>_snow.pkl"
+    inputfile  = None          # default "results_nsets<nsets>_snow.pkl"
     
     parser   = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                       description='''Benchmark example to test Sensitivity Analysis for models with multiple process options.''')
@@ -80,22 +81,26 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--variable', action='store',
                         default=variable, dest='variable', metavar='variable',
                         help='Model output variable name. Must match key in dictionaries in Pickle. (default: variable="Q").')
-    parser.add_argument('-i', '--picklefile', action='store',
-                        default=picklefile, dest='picklefile', metavar='picklefile',
-                        help="Name of Pickle that contains all model runs and Sobol' indexes. (default: results_nsets<nsets>.pkl).")
+    parser.add_argument('-i', '--inputfile', action='store',
+                        default=inputfile, dest='inputfile', metavar='inputfile',
+                        help="Name of Pickle or MessagePack that contains all model runs and Sobol' indexes. (default: results_nsets<nsets>.pkl).")
 
-    args     = parser.parse_args()
-    plotname = args.plotname
-    outtype  = args.outtype
-    serif    = args.serif
-    usetex   = args.usetex
-    nboot    = np.int(args.nboot)
-    nsets    = np.int(args.nsets)
-    variable = args.variable
-    picklefile = args.picklefile
+    args      = parser.parse_args()
+    plotname  = args.plotname
+    outtype   = args.outtype
+    serif     = args.serif
+    usetex    = args.usetex
+    nboot     = np.int(args.nboot)
+    nsets     = np.int(args.nsets)
+    variable  = args.variable
+    inputfile = args.inputfile
 
-    if picklefile is None:
-        picklefile = "results_nsets"+str(nsets)+".pkl"
+    if inputfile is None:
+        inputfile = "results_nsets"+str(nsets)+".pkl"
+
+    inputfiletype = inputfile.split('.')[-1]
+    if not( inputfiletype in ['pkl','msgpack'] ):
+        raise ValueError('Inputfile (-i) must be either of type Pickle (pkl) or MessagePack (msgpack).')
 
     del parser, args
 # Comment|Uncomment - End
@@ -191,9 +196,22 @@ if __name__ == '__main__':
     # -------------------------------------------------------------------------
     # Read results
     # -------------------------------------------------------------------------
-    import pickle
-    setup         = pickle.load( open( picklefile, "rb" ) )
-    sobol_indexes = setup['sobol_indexes']
+    if inputfiletype == 'pkl':
+        # Read pickle file
+        import pickle
+        setup         = pickle.load( open( inputfile, "rb" ) )
+        sobol_indexes = setup['sobol_indexes']
+    elif inputfiletype == 'msgpack':
+        # Read msgpack file
+        import msgpack
+        #import msgpack_numpy as m
+        with open(inputfile) as inputfile_handle:
+            setup = msgpack.unpack(inputfile_handle)
+            sobol_indexes = setup['sobol_indexes']
+        # files cant be unpacked becasue of a bug caused by msgpack incompatibility with salt???
+        # https://github.com/saltstack/salt/issues/56007
+    else:
+        raise ValueError('Inputfile (-i) must be either of type Pickle (pkl) or MessagePack (msgpack).')
 
     # -------------------------------------------------------------------------
     # Colors
@@ -865,7 +883,7 @@ if __name__ == '__main__':
     #npara = len(paras)
     #plt.xticks(np.arange(npara), paras,rotation=90,fontsize='x-small')
 
-    basin = picklefile.split('/')[-2]
+    basin = inputfile.split('/')[-2]
     sub.set_title(jams.str2tex('Basin: '+basin,usetex=usetex))
     sub.set_xlabel(jams.str2tex("Day of Year",usetex=usetex))
     sub.set_ylabel(jams.str2tex("(normalized) Total\n Sobol' Index $ST_i$",usetex=usetex))
@@ -952,7 +970,7 @@ if __name__ == '__main__':
 
     #     p1 = sub.plot(setup['f_a'][ikey],color='gray',alpha=0.6)
     #     p2 = sub.plot(setup['f_b'][ikey],color='gray',alpha=0.6)
-    #     active_snowproc = "+".join(picklefile.split('.')[0].split('_')[3:])
+    #     active_snowproc = "+".join(inputfile.split('.')[0].split('_')[3:])
     #     sub.set_title(jams.str2tex("Processes: "+active_snowproc+"  Model output: "+ikey,usetex=usetex))
 
     # if (outtype == 'pdf'):
