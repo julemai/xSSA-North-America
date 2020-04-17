@@ -20,7 +20,7 @@
 #
 # run with:
 #     source env-3.5/bin/activate
-#     run raven_sa-usgs-canopex.py -i 01013500 -n 10
+#     run raven_sa-usgs-canopex.py -i 08KC001 -n 10
 
 from __future__ import print_function
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     # Basin ID need to be specified
     if basin_ids is None:
-        raise ValueError('Basin ID (option -i) needs to given. Basin ID needs to correspond to ID of a CAMELS basin.')
+        raise ValueError('Basin ID (option -i) needs to given. Basin ID needs to correspond to ID of a basin in "data_in/data_obs/".')
 
     # -----------------------
     # add subolder scripts/lib to search path
@@ -113,6 +113,9 @@ if __name__ == '__main__':
     t1 = time.time()
 
     for basin_id in basin_ids:
+
+        if not( outtype in ['nc', 'pkl', 'json', 'msgpack'] ):
+            raise ValueError("Output type (option t) must be one of the following: ['nc', 'pkl', 'json', 'msgpack']")
     
         # -------------------------------------------------------------------------
         # Set processes and options
@@ -120,16 +123,17 @@ if __name__ == '__main__':
 
         # list of parameters that go into each option (numbering starts with 0)
         options_paras_raven = [
-            [[0,28],[1,28],[2,28]],                           # parameters of infiltration                 options     
-            [[3,28],[4,5,28],[4,5,6,28]],                     # parameters of quickflow                    options
-            [[7,28],[7,8,9,28]],                              # parameters of evaporation                  options
-            [[10],[10,11]],                                   # parameters of baseflow                     options
-            [[12,13,14,15,16,17],[],[17,18]],                 # parameters of snow balance                 options
-            [[19,20]],                                        # parameters for convolution (surf. runoff)  option
-            [[21,22]],                                        # parameters for convolution (delay. runoff) option
-            [[23,24,25,26]],                                  # parameters for potential melt              option
-            [[27,28,29]],                                     # parameters for percolation                 option
-            #[[29,30]],                                       # parameters for soil model                  option
+            [[0,28],[1,28],[2,28]],                           #  1 :: parameters of infiltration                    options     (structure)
+            [[3,28],[4,5,28],[4,5,6,28]],                     #  2 :: parameters of quickflow                       options     (structure)
+            [[7,28],[7,8,9,28]],                              #  3 :: parameters of evaporation                     options     (structure)
+            [[10],[10,11]],                                   #  4 :: parameters of baseflow                        options     (structure)
+            [[12,13,14,15,16,17],[],[17,18]],                 #  5 :: parameters of snow balance                    options     (structure)
+            [[19,20]],                                        #  6 :: parameters for convolution (surf. runoff)     option      (structure)
+            [[21,22]],                                        #  7 :: parameters for convolution (delay. runoff)    option      (structure)
+            [[23,24,25,26]],                                  #  8 :: parameters for potential melt                 option      (input)
+            [[27,28,29,34]],                                  #  9 :: parameters for percolation                    option      (structure)
+            [[30,31]],                                        # 10 :: parameters for rain-snow-partitioning         option      (input)
+            [[32,33]]                                         # 11 :: parameters for rain-snow-coorrection          option      (input)
             ]
 
         # ----------------------------------
@@ -231,9 +235,13 @@ if __name__ == '__main__':
 
             # check that provided number of weights is correct:
             # --> one weight per option per process
-            if ( [len(ilist) for ilist in weights] != [3,3,2,2,3,1,1,1,1] ):
+            if ( [len(ilist) for ilist in weights] != [3,3,2,2,3,1,1,1,1,1,1] ):      # HMETS, SIMPLE_MELT, HBV
+            #if ( [len(ilist) for ilist in weights] != [3,3,2,2,2,1,1,1,1] ):       # HMETS, HBV
+            #if ( [len(ilist) for ilist in weights] != [3,3,2,2,1,1,1,1,1] ):       # HMETS
+            #if ( [len(ilist) for ilist in weights] != [3,3,2,2,1,1,1,1,1] ):       # HBV
+            #if ( [len(ilist) for ilist in weights] != [3,3,2,2,1,1,1,1,1] ):       # SIMPLE_MELT    Done
                 print("Number of weights: ",[len(ilist) for ilist in weights])
-                raise ValueError("sa_model_multiple_processes: model_function: provided number of weights must be [3,3,2,2,3,1,1,1,1]")
+                raise ValueError("sa_model_multiple_processes: model_function: provided number of weights must be [3, 3, 2, 2, 3, 1, 1, 1, 1, 1, 1]")
             # check if sum up to 1.0:
             if ( np.any(np.array([np.sum(ilist) for ilist in weights]) != 1.0) ):
                 print("Sum of weights per process: ",[np.sum(ilist) for ilist in weights])
@@ -247,9 +255,9 @@ if __name__ == '__main__':
                 print("Weights: ",weights)
                 raise ValueError("sa_model_multiple_processes: model_function: weights must be all greater or equal 0.0")
             # check if number of parameters is correct:
-            if (len(paras) != 30):
+            if (len(paras) != 35):
                 print("Number of parameters: ",len(paras))
-                raise ValueError("sa_model_multiple_processes: model_function: provided number of parameters must be 30")
+                raise ValueError("sa_model_multiple_processes: model_function: provided number of parameters must be 35")
 
             # ---------------
             # derive some parameters
@@ -390,6 +398,38 @@ if __name__ == '__main__':
             model['nse'] = np.float((lines[irow]).split(',')[icol])
             print("NSE:     ",model['nse'])
             print("")
+
+            # ---------------
+            # extract model output: Diagnostics: RMSE
+            # ---------------
+            model['rmse'] = 0.0
+            ff = open(str(Path(tmp_folder,"output","Diagnostics.csv")), "r")
+            lines = ff.readlines()
+            ff.close()
+
+            irow = 1  # starting with 0
+            icol = 3  # starting with 0 and assuming "," as delimiter
+
+            # print("lines: ",lines)
+            model['rmse'] = np.float((lines[irow]).split(',')[icol])
+            print("RMSE:     ",model['rmse'])
+            print("")
+
+            # ---------------
+            # extract model output: Diagnostics: KGE
+            # ---------------
+            model['kge'] = 0.0
+            ff = open(str(Path(tmp_folder,"output","Diagnostics.csv")), "r")
+            lines = ff.readlines()
+            ff.close()
+
+            irow = 1  # starting with 0
+            icol = 4  # starting with 0 and assuming "," as delimiter
+
+            # print("lines: ",lines)
+            model['kge'] = np.float((lines[irow]).split(',')[icol])
+            print("KGE:     ",model['kge'])
+            print("")
             
             # ---------------
             # extract model output: Hydrographs: simulated Q
@@ -463,17 +503,42 @@ if __name__ == '__main__':
 
             outpath = "../data_out/"+basin_prop['id']
             if not(os.path.exists(outpath)):
-                os.makedirs(outpath) 
-                
-            sobol_indexes_raven = sa_model_multiple_processes.sa_model_multiple_processes(options_paras_raven,
+                os.makedirs(outpath)
+
+            if outtype == 'nc':
+                sobol_indexes_raven = sa_model_multiple_processes.sa_model_multiple_processes(options_paras_raven,
                                                                                           para_ranges,
                                                                                           model_function_raven,
                                                                                           basin_prop,
                                                                                           constants=None,
                                                                                           nsets=nsets,
-                                                                                          #save_msgpack=outpath+"/results_nsets"+str(nsets)+".msgpack")
-                                                                                          #save_json=outpath+"/results_nsets"+str(nsets)+".json")
+                                                                                          save_nc4=outpath+"/results_nsets"+str(nsets)+".nc")
+            elif outtype == 'pkl':
+                sobol_indexes_raven = sa_model_multiple_processes.sa_model_multiple_processes(options_paras_raven,
+                                                                                          para_ranges,
+                                                                                          model_function_raven,
+                                                                                          basin_prop,
+                                                                                          constants=None,
+                                                                                          nsets=nsets,
                                                                                           save_pkl=outpath+"/results_nsets"+str(nsets)+".pkl")
+            elif outtype == 'msgpack':
+                sobol_indexes_raven = sa_model_multiple_processes.sa_model_multiple_processes(options_paras_raven,
+                                                                                          para_ranges,
+                                                                                          model_function_raven,
+                                                                                          basin_prop,
+                                                                                          constants=None,
+                                                                                          nsets=nsets,
+                                                                                          save_msgpack=outpath+"/results_nsets"+str(nsets)+".msgpack")
+            elif outtype == 'json':
+                sobol_indexes_raven = sa_model_multiple_processes.sa_model_multiple_processes(options_paras_raven,
+                                                                                          para_ranges,
+                                                                                          model_function_raven,
+                                                                                          basin_prop,
+                                                                                          constants=None,
+                                                                                          nsets=nsets,
+                                                                                          save_json=outpath+"/results_nsets"+str(nsets)+".json")
+            else:
+                raise ValueError("Output type (option t) must be one of the following: ['nc', 'pkl', 'json', 'msgpack']")
 
             keys = sobol_indexes_raven['paras']['si'].keys()
 
@@ -534,20 +599,26 @@ if __name__ == '__main__':
                                     for ioption_s in range(len(options_paras_raven[6])):
                                         for ioption_t in range(len(options_paras_raven[7])):
                                             for ioption_u in range(len(options_paras_raven[8])):
+                                                for ioption_v in range(len(options_paras_raven[9])):
+                                                    for ioption_w in range(len(options_paras_raven[10])):
+                                                        for ioption_x in range(len(options_paras_raven[11])):
 
-                                                npara_m = len(options_paras_raven[0][ioption_m])
-                                                npara_n = len(options_paras_raven[1][ioption_n])
-                                                npara_o = len(options_paras_raven[2][ioption_o])
-                                                npara_p = len(options_paras_raven[3][ioption_p])
-                                                npara_q = len(options_paras_raven[4][ioption_q])
-                                                npara_r = len(options_paras_raven[5][ioption_r])
-                                                npara_s = len(options_paras_raven[6][ioption_s])
-                                                npara_t = len(options_paras_raven[7][ioption_t])
-                                                npara_u = len(options_paras_raven[8][ioption_u])
+                                                            npara_m = len(options_paras_raven[0][ioption_m])
+                                                            npara_n = len(options_paras_raven[1][ioption_n])
+                                                            npara_o = len(options_paras_raven[2][ioption_o])
+                                                            npara_p = len(options_paras_raven[3][ioption_p])
+                                                            npara_q = len(options_paras_raven[4][ioption_q])
+                                                            npara_r = len(options_paras_raven[5][ioption_r])
+                                                            npara_s = len(options_paras_raven[6][ioption_s])
+                                                            npara_t = len(options_paras_raven[7][ioption_t])
+                                                            npara_u = len(options_paras_raven[8][ioption_u])
+                                                            npara_v = len(options_paras_raven[9][ioption_v])
+                                                            npara_w = len(options_paras_raven[10][ioption_w])
+                                                            npara_x = len(options_paras_raven[11][ioption_x])
 
-                                                nnparas = npara_m + npara_n + npara_o + npara_p + npara_q + npara_r + npara_s + npara_t + npara_u
+                                                            nnparas = npara_m + npara_n + npara_o + npara_p + npara_q + npara_r + npara_s + npara_t + npara_u + npara_v + npara_w + npara_x
 
-                                                model_runs += nsets * (nnparas+2)
+                                                            model_runs += nsets * (nnparas+2)
                                     
             print("Total number of model runs required: ",model_runs)
 
