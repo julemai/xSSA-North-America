@@ -1,0 +1,5 @@
+-f /cvmfs/soft.computecanada.ca/custom/python/wheelhouse/avx2
+-f /cvmfs/soft.computecanada.ca/custom/python/wheelhouse/generic
+GDAL==2.2.1
+readline==6.2.4.1
+virtualenv==15.1.0
