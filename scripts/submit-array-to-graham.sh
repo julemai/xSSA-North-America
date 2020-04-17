@@ -34,7 +34,8 @@ folders=$(  \ls -d ../data_in/data_obs/*/ | cut -d '/' -f 4 | sort )
 
 # select only folders that don't have yet a results file
 # >>>>> if run all basins again then uncomment following line
-folders=$( for ff in ${folders} ; do if [ ! -e ../data_out/${ff}/results_nsets${nsets}.pkl ] ; then echo ${ff} ; fi ; done )
+# folders=$( for ff in ${folders} ; do if [ ! -e ../data_out/${ff}/results_nsets${nsets}.pkl ] ; then echo ${ff} ; fi ; done )
+folders=$( for ff in ${folders} ; do if [ ! -e ../data_out/${ff}/results_nsets${nsets}.token ] ; then echo ${ff} ; fi ; done )
 
 nfolders=$( for ff in ${folders} ; do echo ${ff} ; done | wc -l )         # 5797 (or whatever is not done yet)
 step=$( echo $(( ${nfolders}/${ntasks} + 1 )) )                           #   58 (or whatever is not done yet)
@@ -73,15 +74,15 @@ if [[ ${step} -gt 0 ]] ; then
     for bb in ${basins_to_process} ; do
 
 	# actual analysis
-	python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets} -t ${SLURM_TMPDIR}
+	python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets} -t ${SLURM_TMPDIR} -o nc
 
-	# extract only sensitivity results from pickle file
-	pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
-	pickle_si="../data_out/${bb}/sensitivity_nsets${nsets}.pkl"
-	python extract_si_results_from_pkl.py -i ${pickle_all} -o ${pickle_si}
+	# # extract only sensitivity results from pickle file
+	# pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
+	# pickle_si="../data_out/${bb}/sensitivity_nsets${nsets}.pkl"
+	# python extract_si_results_from_pkl.py -i ${pickle_all} -o ${pickle_si}
     
 	# plot results
-	python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -i ../data_out/${bb}/results_nsets${nsets}.pkl
+	python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -n ${nsets} -i ../data_out/${bb}/results_nsets${nsets}.nc -o nc 
 	pdfcrop ../data_out/${bb}/${bb}.pdf
 	mv ../data_out/${bb}/${bb}-crop.pdf ../data_out/${bb}/${bb}.pdf
 

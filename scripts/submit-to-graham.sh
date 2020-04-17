@@ -81,15 +81,15 @@ if [ ! -e ../data_out/${bb}/results_nsets${nsets}.pkl ] ; then
 
     # actual analysis
     bb=$( echo ${basins[$(( ${SLURM_ARRAY_TASK_ID} - 1 ))]} )
-    python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets} -t ${SLURM_TMPDIR}
+    python raven_sa-usgs-canopex.py -i ${bb} -n ${nsets} -t ${SLURM_TMPDIR} -o nc
 
-    # extract only sensitivity results from pickle file
-    pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
-    pickle_si="../data_out/${bb}/sensitivity_nsets${nsets}.pkl"
-    python extract_si_results_from_pkl.py -i ${pickle_all} -o ${pickle_si}
+    # # extract only sensitivity results from pickle file
+    # pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
+    # pickle_si="../data_out/${bb}/sensitivity_nsets${nsets}.pkl"
+    # python extract_si_results_from_pkl.py -i ${pickle_all} -o ${pickle_si}
     
     # plot results
-    python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -i ../data_out/${bb}/results_nsets${nsets}.pkl
+    python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -n ${nsets} -i ../data_out/${bb}/results_nsets${nsets}.nc -o nc
     pdfcrop ../data_out/${bb}/${bb}.pdf
     mv ../data_out/${bb}/${bb}-crop.pdf ../data_out/${bb}/${bb}.pdf
     
