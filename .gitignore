@@ -1,6 +1,7 @@
 # basin forcings, observed streamflow, and shapes are ignored
 data_in/*.mat
 data_in/data_obs/*
+data_in/data_model/Raven.exe
 
 # basin outputs (pkl files are ignored)
 data_out/[0-9]*

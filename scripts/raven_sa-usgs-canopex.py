@@ -327,6 +327,9 @@ if __name__ == '__main__':
             raven_exe_name = "../data_in/data_model/Raven.exe"
             raven_obs_folder = "../data_in/data_obs/"+basin_id+""
 
+            if not(os.path.exists(str(os.path.realpath(raven_exe_name)))):
+                raise ValueError('\n\n\nThe executable "'+raven_exe_name+'" does not exist! Please provide a valid Raven executable at that location! \n\n')
+
             if os.path.exists(tmp_folder):
                 shutil.rmtree(tmp_folder)
 
