@@ -43,6 +43,7 @@ if __name__ == '__main__':
     import argparse
     import numpy as np
 
+    outtype     = 'nc'
     nsets       = 100                # number of Sobol sequences
     nboot       = 1                  # Set to 1 for single run of SI and STI calculation
     basin_id    = None
@@ -50,6 +51,9 @@ if __name__ == '__main__':
     
     parser   = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                       description='''Benchmark example to test Sensitivity Analysis for models with multiple process options.''')
+    parser.add_argument('-o', '--type', action='store',
+                        default=outtype, dest='outtype', metavar='outtype',
+                        help='Output type is pkl, msgpack, json, or nc (default: nc).')
     parser.add_argument('-b', '--nboot', action='store',
                         default=nboot, dest='nboot', metavar='nboot',
                         help='Number of bootstrap samples (default: nboot=10).')
@@ -64,6 +68,7 @@ if __name__ == '__main__':
                         help='Temporary directory to run the model. (default: "/tmp/juletest/").')
 
     args       = parser.parse_args()
+    outtype  = args.outtype
     nboot      = np.int(args.nboot)
     nsets      = np.int(args.nsets)
     basin_ids  = args.basin_ids
