@@ -1,6 +1,6 @@
 # basin forcings, observed streamflow, and shapes are ignored
 data_in/*.mat
-# data_in/data_obs/*
+data_in/data_obs/*
 
 # basin outputs (pkl files are ignored)
 data_out/[0-9]*
@@ -14,3 +14,8 @@ scripts/lib/__pycache__
 scripts/lib/*/__pycache__
 scripts/*.pdf
 
+# python environment (only requirements.txt)
+env-3.5/bin
+env-3.5/include
+env-3.5/lib
+env-3.5/share
