@@ -949,22 +949,22 @@ if __name__ == '__main__':
 
     if (ikey == 'Q'):
         ppp = [1,4,7]
-        print("sel processes: ",[unichr(ord('M')+ipp) for ipp in ppp])
+        print("sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
         perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel processes: ",perc,"%")
 
         ppp = [3,5,6]
-        print("sel processes: ",[unichr(ord('M')+ipp) for ipp in ppp])
+        print("sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
         perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel processes: ",perc,"%")
 
         ppp = [0,2,8]
-        print("sel processes: ",[unichr(ord('M')+ipp) for ipp in ppp])
+        print("sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
         perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel processes: ",perc,"%")
 
         ppp = [7,9,10]
-        print("sel processes: ",[unichr(ord('M')+ipp) for ipp in ppp])
+        print("sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
         perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel processes: ",perc,"%")
     
@@ -1089,13 +1089,13 @@ if __name__ == '__main__':
     # reshape such that (ntime,nproc) --> (nyears, 365, nproc)
     tmp_sobol   = copy.deepcopy(sobol_indexes['processes']['sti'][ikey][~leap,:])     # (ntime, nproc)
     tmp_weights = copy.deepcopy(weights)                                    # (ntime)
-    sobol_doy   = np.ones([ntime/ntime_doy,ntime_doy,nproc]) * -9999.0
-    weights_doy = np.ones([ntime/ntime_doy,ntime_doy]) * -9999.0
+    sobol_doy   = np.ones([int(ntime/ntime_doy),ntime_doy,nproc]) * -9999.0
+    weights_doy = np.ones([int(ntime/ntime_doy),ntime_doy]) * -9999.0
     for iproc in range(nproc):
-        sobol_doy[:,:,iproc]   = np.reshape(tmp_sobol[:,iproc],  [ntime/ntime_doy,ntime_doy])
-        # sobol_doy[:,:,iproc] = np.reshape(tmp_sobol[:,iproc],  [ntime/ntime_doy,ntime_doy])
-        sobol_doy[:,:,iproc]   = np.where(np.isinf(np.reshape(tmp_sobol[:,iproc],  [ntime/ntime_doy,ntime_doy])),np.nan,np.reshape(tmp_sobol[:,iproc],  [ntime/ntime_doy,ntime_doy]))
-    weights_doy[:,:] = np.reshape(tmp_weights[:],[ntime/ntime_doy,ntime_doy])
+        sobol_doy[:,:,iproc]   = np.reshape(tmp_sobol[:,iproc],  [int(ntime/ntime_doy),ntime_doy])
+        # sobol_doy[:,:,iproc] = np.reshape(tmp_sobol[:,iproc],  [int(ntime/ntime_doy),ntime_doy])
+        sobol_doy[:,:,iproc]   = np.where(np.isinf(np.reshape(tmp_sobol[:,iproc],  [int(ntime/ntime_doy),ntime_doy])),np.nan,np.reshape(tmp_sobol[:,iproc],  [int(ntime/ntime_doy),ntime_doy]))
+    weights_doy[:,:] = np.reshape(tmp_weights[:],[int(ntime/ntime_doy),ntime_doy])
 
     # average over years
     sobol_doy_mean   = np.nanmean(sobol_doy,axis=0)
@@ -1230,9 +1230,9 @@ if __name__ == '__main__':
     sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
 
     f_ab = np.concatenate((setup['f_a'][ikey], setup['f_b'][ikey]), axis=1)[~leap,:]
-    f_ab_reshape = np.ones([ntime/ntime_doy * nsets * 2,ntime_doy]) * -9999.0
+    f_ab_reshape = np.ones([int(ntime/ntime_doy) * nsets * 2,ntime_doy]) * -9999.0
     for iset in range(nsets*2):
-        f_ab_reshape[iset*(ntime/ntime_doy):(iset+1)*(ntime/ntime_doy),0:ntime_doy] = np.reshape(f_ab[:,iset], [ntime/ntime_doy,ntime_doy])
+        f_ab_reshape[iset*(int(ntime/ntime_doy)):(iset+1)*(int(ntime/ntime_doy)),0:ntime_doy] = np.reshape(f_ab[:,iset], [int(ntime/ntime_doy),ntime_doy])
     p05 = np.percentile(f_ab_reshape, 5,axis=0)
     p25 = np.percentile(f_ab_reshape,25,axis=0)
     p50 = np.percentile(f_ab_reshape,50,axis=0)
