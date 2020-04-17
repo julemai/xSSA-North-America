@@ -20,11 +20,11 @@
 #
 # run with:
 #     run figure_2.py -t pdf -p figure_2 -n 10
-#     python figure_2.py -t pdf -p 03MD001  -i ../data_out/03MD001/results_nsets1000.pkl
-#     python figure_2.py -t pdf -p 01013500 -i ../data_out/01013500/results_nsets2.msgpack
+#     python figure_2.py -t pdf -p 08KC001  -i ../data_out/08KC001/results_nsets2.pkl -n 2   -o "pkl"
+#     python figure_2.py -t pdf -p 08KC001  -i ../data_out/08KC001/results_nsets2.nc  -n 2   -o "nc"
 
 # files=$( \ls ../data_out/*/results_nsets1000.pkl )
-# for ff in $files ; do bb=$( echo $ff | cut -d '/' -f 3 ) ; echo ${bb} ; python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -i ../data_out/${bb}/results_nsets1000.pkl ; pdfcrop ../data_out/${bb}/${bb}.pdf ; mv ../data_out/${bb}/${bb}-crop.pdf ../data_out/${bb}/${bb}.pdf ; echo "---------------" ; echo " " ; done
+# for ff in $files ; do bb=$( echo $ff | cut -d '/' -f 3 ) ; echo ${bb} ; python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -n 1000 -i ../data_out/${bb}/results_nsets1000.pkl -o pkl ; pdfcrop ../data_out/${bb}/${bb}.pdf ; mv ../data_out/${bb}/${bb}-crop.pdf ../data_out/${bb}/${bb}.pdf ; echo "---------------" ; echo " " ; done
 
 # scp julemai@graham.computecanada.ca:/home/julemai/projects/rpp-hwheater/julemai/sa-usgs-canopex/data_out/*/*.pdf .
 
@@ -54,10 +54,11 @@ if __name__ == '__main__':
     outtype     = ''
     usetex      = False
     serif       = False
-    nsets       = 100            # number of Sobol sequences
+    nsets       = 100           # number of Sobol sequences
     nboot       = 1             # Set to 1 for single run of SI and STI calculation
     variable    = 'Q'           # model output variable
-    inputfile  = None          # default "results_nsets<nsets>_snow.pkl"
+    inputfile   = None          # default "results_nsets<nsets>_snow.pkl"
+    intype      = None
     
     parser   = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                       description='''Benchmark example to test Sensitivity Analysis for models with multiple process options.''')
@@ -83,24 +84,31 @@ if __name__ == '__main__':
                         help='Model output variable name. Must match key in dictionaries in Pickle. (default: variable="Q").')
     parser.add_argument('-i', '--inputfile', action='store',
                         default=inputfile, dest='inputfile', metavar='inputfile',
-                        help="Name of Pickle or MessagePack that contains all model runs and Sobol' indexes. (default: results_nsets<nsets>.pkl).")
+                        help="Name of file that contains all model runs and Sobol' indexes. (default: results_nsets<nsets>_snow.pkl).")
+    parser.add_argument('-o', '--intype', action='store',
+                        default=intype, dest='intype', metavar='intype',
+                        help='Type of inputfile: needs to be pkl, msgpack, json, or nc (default: nc).')
+    
 
-    args      = parser.parse_args()
-    plotname  = args.plotname
-    outtype   = args.outtype
-    serif     = args.serif
-    usetex    = args.usetex
-    nboot     = np.int(args.nboot)
-    nsets     = np.int(args.nsets)
-    variable  = args.variable
-    inputfile = args.inputfile
+    args       = parser.parse_args()
+    plotname   = args.plotname
+    outtype    = args.outtype
+    serif      = args.serif
+    usetex     = args.usetex
+    nboot      = np.int(args.nboot)
+    nsets      = np.int(args.nsets)
+    variable   = args.variable
+    inputfile  = args.inputfile
+    intype     = args.intype
 
     if inputfile is None:
-        inputfile = "results_nsets"+str(nsets)+".pkl"
+        inputfile = "results_nsets"+str(nsets)+"_snow.pkl"
 
-    inputfiletype = inputfile.split('.')[-1]
-    if not( inputfiletype in ['pkl','msgpack'] ):
-        raise ValueError('Inputfile (-i) must be either of type Pickle (pkl) or MessagePack (msgpack).')
+    if outtype is None:
+        outtype = 'pkl'
+
+    if inputfile.split('.')[-1] != intype:
+        raise ValueError('Type of input file (option -o) does not match file ending of input file (option -i).')
 
     del parser, args
 # Comment|Uncomment - End
@@ -176,55 +184,69 @@ if __name__ == '__main__':
     cols3 = [jams.color.colours('gray'),cols2[0],jams.color.colours('white')]  # gray red white
 
     # -------------------------------------------------------------------------
-    # Set processes and options
-    # -------------------------------------------------------------------------
-
-    # list of parameters that go into each option (numbering starts with 0)
-    options_paras_raven = [
-        [[0,28],[1,28],[2,28]],                           # parameters of infiltration                 options     
-        [[3,28],[4,5,28],[4,5,6,28]],                     # parameters of quickflow                    options
-        [[7,28],[7,8,9,28]],                              # parameters of evaporation                  options
-        [[10],[10,11]],                                   # parameters of baseflow                     options
-        [[12,13,14,15,16,17],[],[17,18]],                 # parameters of snow balance                 options     # HMETS, SIMPLE_MELT, HBV
-        [[19,20]],                                        # parameters for convolution (surf. runoff)  option
-        [[21,22]],                                        # parameters for convolution (delay. runoff) option
-        [[23,24,25,26]],                                  # parameters for potential melt              option
-        [[27,28,29]],                                     # parameters for percolation                 option
-        #[[29,30]],                                       # parameters for soil model                  option
-        ]
-
-    # -------------------------------------------------------------------------
     # Read results
     # -------------------------------------------------------------------------
-    if inputfiletype == 'pkl':
-        # Read pickle file
+    if intype == 'pkl':
         import pickle
         setup         = pickle.load( open( inputfile, "rb" ) )
         sobol_indexes = setup['sobol_indexes']
-    elif inputfiletype == 'msgpack':
-        # Read msgpack file
-        import msgpack
-        #import msgpack_numpy as m
-        with open(inputfile) as inputfile_handle:
-            setup = msgpack.unpack(inputfile_handle)
-            sobol_indexes = setup['sobol_indexes']
-        # files cant be unpacked becasue of a bug caused by msgpack incompatibility with salt???
-        # https://github.com/saltstack/salt/issues/56007
-    else:
-        raise ValueError('Inputfile (-i) must be either of type Pickle (pkl) or MessagePack (msgpack).')
+        
+    elif intype == 'nc':
+        import netCDF4 as nc4
+        nc4_in = nc4.Dataset(inputfile, "r", format="NETCDF4")
+
+        # ---------------------
+        # sensitivity indexes: sobol_indexes['paras']['msi'][variable]
+        # ---------------------
+        sobol_indexes = {}   
+
+        for analysis_type in ['paras', 'process_options', 'processes']:
+            
+            tmp2 = {}
+
+            # aggregated sensitivity indexes
+            for sensi_index_type in ['msi', 'msti', 'wsi', 'wsti']:
+                tmp = {}
+                ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
+                tmp[variable] = nc4_in.groups[variable].variables[ncvar_name][:]
+                tmp2[sensi_index_type] = tmp
+
+            # time-dependent sensitivity indexes
+            if analysis_type == 'processes':
+                for sensi_index_type in ['sti']:
+                    tmp = {}
+                    ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
+                    tmp[variable] = nc4_in.groups[variable].variables[ncvar_name][:]
+                    tmp2[sensi_index_type] = tmp
+
+            sobol_indexes[analysis_type] = tmp2
+
+        # ---------------------
+        # model outouts to derive timesetp weights: setup['f_a'][variable]
+        # ---------------------
+        setup = {}
+
+        for ncvar_name in ['f_a', 'f_b']:
+            tmp = {}
+            tmp[variable] = nc4_in.groups[variable].variables[ncvar_name][:]   
+            setup[ncvar_name] = tmp      
+        
+        nc4_in.close()
 
     # -------------------------------------------------------------------------
     # Colors
     # -------------------------------------------------------------------------
-    infil_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[20]
-    quick_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[55]
-    evapo_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[80]
-    basef_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[105]
-    snowb_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[130]
-    convs_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[155]
-    convd_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[180]
-    potme_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[205]
-    perco_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[230]
+    infil_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[20]   #  [20]
+    quick_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[43]   #  [55] 
+    evapo_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[66]   #  [80] 
+    basef_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[89]   #  [105]
+    snowb_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[112]  #  [130]
+    convs_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[135]  #  [155]
+    convd_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[157]  #  [180]
+    potme_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[179]  #  [205]
+    perco_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[201]  #  [230]
+    rspar_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[223]  #  [230]
+    rscor_color = jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[255]  #  [230]
     soilm_color = (0.7,0.7,0.7) #jams.get_brewer( 'WhiteBlueGreenYellowRed',rgb=True)[255]
     
     # -------------------------------------------------------------------------
@@ -364,7 +386,7 @@ if __name__ == '__main__':
     figsize = mpl.rcParams['figure.figsize']
     mpl.rcParams['axes.linewidth'] = lwidth
 
-    
+    unequal_second_row = 0.12
     ifig = 0
 
     # -------------------------------------------------
@@ -379,7 +401,7 @@ if __name__ == '__main__':
     # -----------------------
     # plot
     # -----------------------
-    ylim = [-0.1, 0.8]
+    ylim = [-0.1, 0.6]
 
     # -------------
     # Parameter sensitivities
@@ -387,10 +409,32 @@ if __name__ == '__main__':
     iplot += 1
     sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
 
-    paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
-                   '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
-                   '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
-                   '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$', '$r_{7}$', '$r_{8}$']
+    active_snowproc = "+".join(inputfile.split('.')[0].split('_')[4:-1])
+    if (active_snowproc == "HMETS_SIMPLE_HBV"):
+        paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
+                       '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
+                       '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
+                       '$x_{31}$', '$x_{32}$', '$x_{33}$', '$x_{34}$', '$x_{35}$',
+                       '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$', '$r_{7}$', '$r_{8}$']
+    elif (active_snowproc == "HMETS_HBV"):
+        paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
+                       '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
+                       '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
+                       '$x_{31}$', '$x_{32}$', '$x_{33}$', '$x_{34}$', '$x_{35}$',
+                       '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$', '$r_{7}$']
+    elif (active_snowproc == "HMETS" or active_snowproc == "SIMPLE" or active_snowproc == "HBV"):
+        paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
+                       '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
+                       '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
+                       '$x_{31}$', '$x_{32}$', '$x_{33}$', '$x_{34}$', '$x_{35}$',
+                       '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$']
+    else:
+        # all
+        paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
+                       '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
+                       '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
+                       '$x_{31}$', '$x_{32}$', '$x_{33}$', '$x_{34}$', '$x_{35}$',
+                       '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$', '$r_{7}$', '$r_{8}$']
     paras = [ jams.str2tex(ii,usetex=usetex) for ii in paras ]
 
     keys = sobol_indexes['paras']['msi'].keys()
@@ -407,42 +451,48 @@ if __name__ == '__main__':
                            quick_color, quick_color, quick_color, quick_color,
                            evapo_color, evapo_color, evapo_color,
                            basef_color, basef_color,
-                           snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, 
+                           snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, snowb_color,
                            convs_color,convs_color,
                            convd_color,convd_color,
                            potme_color,potme_color,potme_color,potme_color,
                            perco_color,
                            soilm_color,soilm_color,
+                           rspar_color, rspar_color,     # x31, x32
+                           rscor_color, rscor_color,     # x33, x34
+                           perco_color,                  # x35
                            # weights generating random numbers
                            infil_color, infil_color,
                            quick_color, quick_color,
                            evapo_color,
                            basef_color,
-                           snowb_color, snowb_color, snowb_color) )    # STi wmean
+                           snowb_color, snowb_color, snowb_color) )    # STi mean
     mark2 = sub.bar(np.arange(npara), sobol_indexes['paras']['msi'][ikey], align='center', alpha=1.0,
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color, quick_color,
                            evapo_color, evapo_color, evapo_color,
                            basef_color, basef_color,
-                           snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, 
+                           snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, snowb_color, snowb_color,
                            convs_color,convs_color,
                            convd_color,convd_color,
                            potme_color,potme_color,potme_color,potme_color,
                            perco_color,
                            soilm_color,soilm_color,
+                           rspar_color, rspar_color,     # x31, x32
+                           rscor_color, rscor_color,     # x33, x34
+                           perco_color,                  # x35
                            # weights generating random numbers
                            infil_color, infil_color,
                            quick_color, quick_color,
                            evapo_color,
                            basef_color,
-                           snowb_color, snowb_color, snowb_color) )    # Si  wmean
+                           snowb_color, snowb_color, snowb_color) )    # Si mean
 
     sub.set_ylim(ylim)
 
     npara = len(paras)
     plt.xticks(np.arange(npara), paras,rotation=90,fontsize='x-small')
     
-    plt.title(jams.str2tex('Sensitivities of Model Variables',usetex=usetex))
+    plt.title(jams.str2tex('Sensitivities of Model Parameters',usetex=usetex))
     plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
     jams.abc2plot(sub,dxabc/2,dyabc,iplot,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
@@ -451,13 +501,51 @@ if __name__ == '__main__':
     # Process option sensitivities
     # -------------
     iplot += 2
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace))
+    #                  [left, bottom, width, height] 
+    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[0.0,0.0,unequal_second_row,0.0])
 
-    procopt = ['INF_HMETS', 'INF_VIC_ARNO', 'INF_HBV', 'BASE_LINEAR_ANALYTIC', 'BASE_VIC', 'BASE_TOPMODEL',
-               'SOILEVAP_ALL', 'SOILEVAP_TOPMODEL', 'BASE_LINEAR_ANALYTIC', 'BASE_POWER_LAW',
-               'SNOBAL_HMETS', 'SNOBAL_SIMPLE_MELT', 'SNOBAL_HBV', 'CONVOL_GAMMA', 'CONVOL_GAMMA_2', 'POTMELT_HMETS', 'PERC_LINEAR',
-               'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$', 'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
-               'Evaporation weight gen. $r_{5}$', 'Baseflow weight gen. $r_{6}$', 'Snow Balance weight gen. $r_{7}$', 'Snow Balance weight gen. $r_{8}$']  
+    active_snowproc = "_".join(inputfile.split('.')[0].split('_')[4:-1])
+    if (active_snowproc == "HMETS_SIMPLE_HBV"):
+        procopt = ['INF_HMETS $M_1$', 'INF_VIC_ARNO $M_2$', 'INF_HBV $M_3$',
+                   'BASE_LINEAR_ANALYTIC $N_1$', 'BASE_VIC $N_2$', 'BASE_TOPMODEL $N_3$',
+                   'SOILEVAP_ALL $O_1$', 'SOILEVAP_TOPMODEL $O_2$',
+                   'BASE_LINEAR_ANALYTIC $P_1$', 'BASE_POWER_LAW $P_2$',
+                   'SNOBAL_HMETS $Q_1$', 'SNOBAL_SIMPLE_MELT $Q_2$', 'SNOBAL_HBV $Q_3$',
+                   'CONVOL_GAMMA $R_1$', 'CONVOL_GAMMA_2 $S_1$', 'POTMELT_HMETS $T_1$', 'PERC_LINEAR $U_1$',
+                   'RAINSNOW_HBV $V_1$', 'RAINSNOW_CORRECTION $W_1$',
+                   'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$',
+                   'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
+                   'Evaporation weight gen. $r_{5}$',
+                   'Baseflow weight gen. $r_{6}$',
+                   'Snow Balance weight gen. $r_{7}$', 'Snow Balance weight gen. $r_{8}$']
+        ccc = (snowb_color, snowb_color, snowb_color)
+    elif (active_snowproc == "HMETS_HBV"):
+        procopt = ['INF_HMETS', 'INF_VIC_ARNO', 'INF_HBV', 'BASE_LINEAR_ANALYTIC', 'BASE_VIC', 'BASE_TOPMODEL',
+                   'SOILEVAP_ALL', 'SOILEVAP_TOPMODEL', 'BASE_LINEAR_ANALYTIC', 'BASE_POWER_LAW', 'SNOBAL_HMETS', 'SNOBAL_HBV',
+                   'CONVOL_GAMMA', 'CONVOL_GAMMA_2', 'POTMELT_HMETS', 'PERC_LINEAR',
+                   'RAINSNOW_HBV $V_1$', 'RAINSNOW_CORRECTION $W_1$',
+                   'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$', 'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
+                   'Evaporation weight gen. $r_{5}$', 'Baseflow weight gen. $r_{6}$', 'Snow Balance weight gen. $r_{7}$']
+        ccc = (snowb_color, snowb_color)
+    elif (active_snowproc == "HMETS" or active_snowproc == "SIMPLE" or active_snowproc == "HBV"):
+        procopt = ['INF_HMETS', 'INF_VIC_ARNO', 'INF_HBV', 'BASE_LINEAR_ANALYTIC', 'BASE_VIC', 'BASE_TOPMODEL',
+                   'SOILEVAP_ALL', 'SOILEVAP_TOPMODEL', 'BASE_LINEAR_ANALYTIC', 'BASE_POWER_LAW', 'SNOBAL_'+active_snowproc,
+                   'CONVOL_GAMMA', 'CONVOL_GAMMA_2', 'POTMELT_HMETS', 'PERC_LINEAR',
+                   'RAINSNOW_HBV $V_1$', 'RAINSNOW_CORRECTION $W_1$',
+                   'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$', 'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
+                   'Evaporation weight gen. $r_{5}$', 'Baseflow weight gen. $r_{6}$']
+        ccc = (snowb_color)
+        ccc = (ccc,)
+    else:
+        # all
+        procopt = ['INF_HMETS', 'INF_VIC_ARNO', 'INF_HBV', 'BASE_LINEAR_ANALYTIC', 'BASE_VIC', 'BASE_TOPMODEL',
+                   'SOILEVAP_ALL', 'SOILEVAP_TOPMODEL', 'BASE_LINEAR_ANALYTIC', 'BASE_POWER_LAW', 'SNOBAL_HMETS', 'SNOBAL_SIMPLE_MELT', 'SNOBAL_HBV',
+                   'CONVOL_GAMMA', 'CONVOL_GAMMA_2', 'POTMELT_HMETS', 'PERC_LINEAR',
+                   'RAINSNOW_HBV $V_1$', 'RAINSNOW_CORRECTION $W_1$',
+                   'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$', 'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
+                   'Evaporation weight gen. $r_{5}$', 'Baseflow weight gen. $r_{6}$', 'Snow Balance weight gen. $r_{7}$', 'Snow Balance weight gen. $r_{8}$']
+        ccc = (snowb_color, snowb_color, snowb_color)
+    
     procopt = [ jams.str2tex(ii,usetex=usetex) for ii in procopt ]
 
     keys = sobol_indexes['process_options']['msi'].keys()
@@ -473,26 +561,26 @@ if __name__ == '__main__':
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color,
                            evapo_color, evapo_color,
-                           basef_color, basef_color,
-                           snowb_color, snowb_color, snowb_color, 
-                           convs_color, convd_color, potme_color, perco_color, #soilm_color,
+                           basef_color, basef_color)+ccc+(
+                           convs_color, convd_color, potme_color, perco_color,
+                           rspar_color, rscor_color,
                            infil_color, infil_color,
                            quick_color, quick_color,
                            evapo_color,
                            basef_color,
-                           snowb_color, snowb_color, snowb_color))    # STi wmean
+                           snowb_color, snowb_color, snowb_color) )    # STi mean
     mark2 = sub.bar(np.arange(nopt), sobol_indexes['process_options']['msi'][ikey], align='center', alpha=1.0,
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color,
                            evapo_color, evapo_color,
-                           basef_color, basef_color,
-                           snowb_color, snowb_color, snowb_color, 
-                           convs_color, convd_color, potme_color, perco_color, #soilm_color,
+                           basef_color, basef_color)+ccc+(
+                           convs_color, convd_color, potme_color, perco_color,
+                           rspar_color, rscor_color,
                            infil_color, infil_color,
                            quick_color, quick_color,
                            evapo_color,
                            basef_color,
-                           snowb_color, snowb_color, snowb_color))        # Si  wmean  
+                           snowb_color, snowb_color, snowb_color) )  # Si mean
 
     sub.set_ylim(ylim)
 
@@ -508,9 +596,12 @@ if __name__ == '__main__':
     # Process sensitivities
     # -------------
     iplot += 1
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace))
+    #                  [left, bottom, width, height] 
+    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row,0.0,-unequal_second_row,0.0])
 
-    processes = ['Infiltration','Quickflow','Evaporation','Baseflow','Snow Balance', 'Convolution\n(surface runoff)', 'Convolution\n(delayed runoff)', 'Potential melt', 'Percolation']  # , 'Soil model'
+    processes = ['Infiltration $M$','Quickflow $N$','Evaporation $O$','Baseflow $P$','Snow Balance $Q$', 'Convolution (srfc runoff) $R$',
+                 'Convolution (dlyd runoff) $S$', 'Potential Melt $T$', 'Percolation $U$',
+                 'Rain-Snow Partitioning $V$', 'Rain-Snow Correction $W$']  # , 'Soil model'
     processes = [ jams.str2tex(ii,usetex=usetex) for ii in processes ]
 
     keys = sobol_indexes['processes']['msi'].keys()
@@ -524,10 +615,10 @@ if __name__ == '__main__':
     nproc = np.shape(sobol_indexes['processes']['msi'][ikey])[0]
     mark1 = sub.bar(    np.arange(nproc), sobol_indexes['processes']['msti'][ikey], align='center', alpha=0.6,
                         color=(infil_color, quick_color, evapo_color, basef_color, snowb_color,
-                               convs_color, convd_color, potme_color, perco_color, soilm_color))    # STi wmean
+                               convs_color, convd_color, potme_color, perco_color, rspar_color, rscor_color))    # STi wmean
     mark2 = sub.bar(    np.arange(nproc), sobol_indexes['processes']['msi'][ikey], align='center', alpha=1.0,
                         color=(infil_color, quick_color, evapo_color, basef_color, snowb_color,
-                               convs_color, convd_color, potme_color, perco_color, soilm_color))    # Si  wmean
+                               convs_color, convd_color, potme_color, perco_color, rspar_color, rscor_color))    # Si  wmean
 
     sub.set_ylim(ylim)
     
@@ -536,29 +627,37 @@ if __name__ == '__main__':
     #plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
     jams.abc2plot(sub,dxabc,dyabc,iplot-1,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
-    
+
+    #                  [left, bottom, width, height] 
+    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.0])
+    sub.axis('off')
     # Create custom artists
     #      (left, bottom), width, height
-    boxSi_1   = patches.Rectangle( (0.00, -0.70), 0.03, 0.05, color = infil_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_2   = patches.Rectangle( (0.04, -0.70), 0.03, 0.05, color = quick_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_3   = patches.Rectangle( (0.08, -0.70), 0.03, 0.05, color = evapo_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_4   = patches.Rectangle( (0.12, -0.70), 0.03, 0.05, color = basef_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_5   = patches.Rectangle( (0.16, -0.70), 0.03, 0.05, color = snowb_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_6   = patches.Rectangle( (0.20, -0.70), 0.03, 0.05, color = convs_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_7   = patches.Rectangle( (0.24, -0.70), 0.03, 0.05, color = convd_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_8   = patches.Rectangle( (0.28, -0.70), 0.03, 0.05, color = potme_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_9   = patches.Rectangle( (0.32, -0.70), 0.03, 0.05, color = perco_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_10  = patches.Rectangle( (0.36, -0.70), 0.03, 0.05, color = soilm_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_1  = patches.Rectangle( (0.00, -0.83), 0.03, 0.05, color = infil_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_2  = patches.Rectangle( (0.04, -0.83), 0.03, 0.05, color = quick_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_3  = patches.Rectangle( (0.08, -0.83), 0.03, 0.05, color = evapo_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_4  = patches.Rectangle( (0.12, -0.83), 0.03, 0.05, color = basef_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_5  = patches.Rectangle( (0.16, -0.83), 0.03, 0.05, color = snowb_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_6  = patches.Rectangle( (0.20, -0.83), 0.03, 0.05, color = convs_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_7  = patches.Rectangle( (0.24, -0.83), 0.03, 0.05, color = convd_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_8  = patches.Rectangle( (0.28, -0.83), 0.03, 0.05, color = potme_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_9  = patches.Rectangle( (0.32, -0.83), 0.03, 0.05, color = perco_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_10 = patches.Rectangle( (0.36, -0.83), 0.03, 0.05, color = soilm_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_1   = patches.Rectangle( (0.00, -0.75), 0.03, 0.05, color = infil_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_2   = patches.Rectangle( (0.04, -0.75), 0.03, 0.05, color = quick_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_3   = patches.Rectangle( (0.08, -0.75), 0.03, 0.05, color = evapo_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_4   = patches.Rectangle( (0.12, -0.75), 0.03, 0.05, color = basef_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_5   = patches.Rectangle( (0.16, -0.75), 0.03, 0.05, color = snowb_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_6   = patches.Rectangle( (0.20, -0.75), 0.03, 0.05, color = convs_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_7   = patches.Rectangle( (0.24, -0.75), 0.03, 0.05, color = convd_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_8   = patches.Rectangle( (0.28, -0.75), 0.03, 0.05, color = potme_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_9   = patches.Rectangle( (0.32, -0.75), 0.03, 0.05, color = perco_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_10  = patches.Rectangle( (0.36, -0.75), 0.03, 0.05, color = rspar_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_11  = patches.Rectangle( (0.40, -0.75), 0.03, 0.05, color = rscor_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_12  = patches.Rectangle( (0.44, -0.75), 0.03, 0.05, color = soilm_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_1  = patches.Rectangle( (0.00, -0.90), 0.03, 0.05, color = infil_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_2  = patches.Rectangle( (0.04, -0.90), 0.03, 0.05, color = quick_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_3  = patches.Rectangle( (0.08, -0.90), 0.03, 0.05, color = evapo_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_4  = patches.Rectangle( (0.12, -0.90), 0.03, 0.05, color = basef_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_5  = patches.Rectangle( (0.16, -0.90), 0.03, 0.05, color = snowb_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_6  = patches.Rectangle( (0.20, -0.90), 0.03, 0.05, color = convs_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_7  = patches.Rectangle( (0.24, -0.90), 0.03, 0.05, color = convd_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_8  = patches.Rectangle( (0.28, -0.90), 0.03, 0.05, color = potme_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_9  = patches.Rectangle( (0.32, -0.90), 0.03, 0.05, color = perco_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_10 = patches.Rectangle( (0.36, -0.90), 0.03, 0.05, color = rspar_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_11 = patches.Rectangle( (0.40, -0.90), 0.03, 0.05, color = rscor_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_12 = patches.Rectangle( (0.44, -0.90), 0.03, 0.05, color = soilm_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    
     sub.add_patch(boxSi_1)  ;  sub.add_patch(boxSTi_1)
     sub.add_patch(boxSi_2)  ;  sub.add_patch(boxSTi_2)
     sub.add_patch(boxSi_3)  ;  sub.add_patch(boxSTi_3)
@@ -569,9 +668,11 @@ if __name__ == '__main__':
     sub.add_patch(boxSi_8)  ;  sub.add_patch(boxSTi_8)
     sub.add_patch(boxSi_9)  ;  sub.add_patch(boxSTi_9)
     sub.add_patch(boxSi_10) ;  sub.add_patch(boxSTi_10)
+    sub.add_patch(boxSi_11) ;  sub.add_patch(boxSTi_11)
+    sub.add_patch(boxSi_12) ;  sub.add_patch(boxSTi_12)
     
-    sub.text(0.42, -0.67, jams.str2tex("Sobol' main effect $\overline{S_i}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.42, -0.80, jams.str2tex("Sobol' total effect $\overline{ST_i}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.50, -0.72, jams.str2tex("Sobol' main effect $\overline{S_i}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.50, -0.87, jams.str2tex("Sobol' total effect $\overline{ST_i}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
 
 
     if (outtype == 'pdf'):
@@ -595,7 +696,7 @@ if __name__ == '__main__':
     # -----------------------
     # plot
     # -----------------------
-    ylim = [-0.1, 0.8]
+    ylim = [-0.1, 0.6]
 
     # -------------
     # Parameter sensitivities
@@ -603,10 +704,32 @@ if __name__ == '__main__':
     iplot += 1
     sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
 
-    paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
-                   '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
-                   '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
-                   '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$', '$r_{7}$', '$r_{8}$']
+    active_snowproc = "+".join(inputfile.split('.')[0].split('_')[4:-1])
+    if (active_snowproc == "HMETS_SIMPLE_HBV"):
+        paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
+                       '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
+                       '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
+                       '$x_{31}$', '$x_{32}$', '$x_{33}$', '$x_{34}$', '$x_{35}$',
+                       '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$', '$r_{7}$', '$r_{8}$']
+    elif (active_snowproc == "HMETS_HBV"):
+        paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
+                       '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
+                       '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
+                       '$x_{31}$', '$x_{32}$', '$x_{33}$', '$x_{34}$', '$x_{35}$',
+                       '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$', '$r_{7}$']
+    elif (active_snowproc == "HMETS" or active_snowproc == "SIMPLE" or active_snowproc == "HBV"):
+        paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
+                       '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
+                       '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
+                       '$x_{31}$', '$x_{32}$', '$x_{33}$', '$x_{34}$', '$x_{35}$',
+                       '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$']
+    else:
+        # all
+        paras = [      '$x_{1}$',  '$x_{2}$',  '$x_{3}$',  '$x_{4}$',  '$x_{5}$',  '$x_{6}$',  '$x_{7}$',  '$x_{8}$',  '$x_{9}$',  '$x_{10}$',
+                       '$x_{11}$', '$x_{12}$', '$x_{13}$', '$x_{14}$', '$x_{15}$', '$x_{16}$', '$x_{17}$', '$x_{18}$', '$x_{19}$', '$x_{20}$',
+                       '$x_{21}$', '$x_{22}$', '$x_{23}$', '$x_{24}$', '$x_{25}$', '$x_{26}$', '$x_{27}$', '$x_{28}$', '$x_{29}$', '$x_{30}$',
+                       '$x_{31}$', '$x_{32}$', '$x_{33}$', '$x_{34}$', '$x_{35}$',
+                       '$r_{1}$', '$r_{2}$', '$r_{3}$', '$r_{4}$', '$r_{5}$', '$r_{6}$', '$r_{7}$', '$r_{8}$']
     paras = [ jams.str2tex(ii,usetex=usetex) for ii in paras ]
 
     keys = sobol_indexes['paras']['wsi'].keys()
@@ -616,6 +739,22 @@ if __name__ == '__main__':
         print("Variables in pickle: ",keys)
         print("Variable given:      ",variable)
         raise ValueError("Variable given is not available in Pickle!")
+
+    if (ikey == 'Q'):
+        ppp = [4,5,7,15,17,18,23,24,25,26,28]
+        print("sel parameters: ",["x_{"+str(ipp+1)+"}" for ipp in ppp])
+        perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][0:30])*100.
+        print("Overall sensitivity of sel parameters (w/o ri): ",perc,"%")
+        perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][:])*100.
+        print("Overall sensitivity of sel parameters (w/  ri): ",perc,"%")
+    if (ikey == 'infiltration'):
+        ppp = [4,5,7,15,17,18,23,24,25,26,28]
+        print("sel parameters: ",["x_{"+str(ipp+1)+"}" for ipp in ppp])
+        perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][0:30])*100.
+        print("Overall sensitivity of sel parameters (w/o ri): ",perc,"%")
+        perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][:])*100.
+        print("Overall sensitivity of sel parameters (w/  ri): ",perc,"%")
+        
     
     npara = np.shape(sobol_indexes['paras']['wsi'][ikey])[0]
     mark1 = sub.bar(np.arange(npara), sobol_indexes['paras']['wsti'][ikey], align='center', alpha=0.3,
@@ -629,12 +768,15 @@ if __name__ == '__main__':
                            potme_color,potme_color,potme_color,potme_color,
                            perco_color,
                            soilm_color,soilm_color,
+                           rspar_color, rspar_color,     # x31, x32
+                           rscor_color, rscor_color,     # x33, x34
+                           perco_color,                  # x35
                            # weights generating random numbers
                            infil_color, infil_color,
                            quick_color, quick_color,
                            evapo_color,
                            basef_color,
-                           snowb_color, snowb_color, snowb_color) )    # STi wmean
+                           snowb_color, snowb_color) ) #, snowb_color) )    # STi wmean
     mark2 = sub.bar(np.arange(npara), sobol_indexes['paras']['wsi'][ikey], align='center', alpha=1.0,
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color, quick_color,
@@ -646,19 +788,22 @@ if __name__ == '__main__':
                            potme_color,potme_color,potme_color,potme_color,
                            perco_color,
                            soilm_color,soilm_color,
+                           rspar_color, rspar_color,     # x31, x32
+                           rscor_color, rscor_color,     # x33, x34
+                           perco_color,                  # x35
                            # weights generating random numbers
                            infil_color, infil_color,
                            quick_color, quick_color,
                            evapo_color,
                            basef_color,
-                           snowb_color, snowb_color, snowb_color) )    # Si  wmean
+                           snowb_color, snowb_color) ) #, snowb_color) )    # Si  wmean
 
     sub.set_ylim(ylim)
 
     npara = len(paras)
     plt.xticks(np.arange(npara), paras,rotation=90,fontsize='x-small')
     
-    plt.title(jams.str2tex('Sensitivities of Model Variables',usetex=usetex))
+    plt.title(jams.str2tex('Sensitivities of Model Parameters',usetex=usetex))
     plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
     jams.abc2plot(sub,dxabc/2,dyabc,iplot,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
@@ -667,14 +812,53 @@ if __name__ == '__main__':
     # Process option sensitivities
     # -------------
     iplot += 2
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace))
+    #                  [left, bottom, width, height] 
+    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[0.0,0.0,unequal_second_row,0.0])
 
-    procopt = ['INF_HMETS', 'INF_VIC_ARNO', 'INF_HBV', 'BASE_LINEAR_ANALYTIC', 'BASE_VIC', 'BASE_TOPMODEL',
-               'SOILEVAP_ALL', 'SOILEVAP_TOPMODEL', 'BASE_LINEAR_ANALYTIC', 'BASE_POWER_LAW',
-               'SNOBAL_HMETS', 'SNOBAL_SIMPLE_MELT', 'SNOBAL_HBV', 'CONVOL_GAMMA', 'CONVOL_GAMMA_2', 'POTMELT_HMETS', 'PERC_LINEAR',
-               'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$', 'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
-               'Evaporation weight gen. $r_{5}$', 'Baseflow weight gen. $r_{6}$', 'Snow Balance weight gen. $r_{7}$', 'Snow Balance weight gen. $r_{8}$']  
-    procopt = [ jams.str2tex(ii,usetex=usetex) for ii in procopt ]
+    active_snowproc = "_".join(inputfile.split('.')[0].split('_')[4:-1])
+    if (active_snowproc == "HMETS_SIMPLE_HBV"):
+        procopt = ['INF_HMETS $M_1$', 'INF_VIC_ARNO $M_2$', 'INF_HBV $M_3$',
+                   'BASE_LINEAR_ANALYTIC $N_1$', 'BASE_VIC $N_2$', 'BASE_TOPMODEL $N_3$',
+                   'SOILEVAP_ALL $O_1$', 'SOILEVAP_TOPMODEL $O_2$',
+                   'BASE_LINEAR_ANALYTIC $P_1$', 'BASE_POWER_LAW $P_2$',
+                   'SNOBAL_HMETS $Q_1$', 'SNOBAL_SIMPLE_MELT $Q_2$', 'SNOBAL_HBV $Q_3$',
+                   'CONVOL_GAMMA $R_1$', 'CONVOL_GAMMA_2 $S_1$', 'POTMELT_HMETS $T_1$', 'PERC_LINEAR $U_1$',
+                   'RAINSNOW_HBV $V_1$', 'RAINSNOW_CORRECTION $W_1$',
+                   'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$',
+                   'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
+                   'Evaporation weight gen. $r_{5}$',
+                   'Baseflow weight gen. $r_{6}$',
+                   'Snow Balance weight gen. $r_{7}$', 'Snow Balance weight gen. $r_{8}$']
+        ccc = (snowb_color, snowb_color, snowb_color)
+    elif (active_snowproc == "HMETS_HBV"):
+        procopt = ['INF_HMETS', 'INF_VIC_ARNO', 'INF_HBV', 'BASE_LINEAR_ANALYTIC', 'BASE_VIC', 'BASE_TOPMODEL',
+                   'SOILEVAP_ALL', 'SOILEVAP_TOPMODEL', 'BASE_LINEAR_ANALYTIC', 'BASE_POWER_LAW', 'SNOBAL_HMETS', 'SNOBAL_HBV',
+                   'CONVOL_GAMMA', 'CONVOL_GAMMA_2', 'POTMELT_HMETS', 'PERC_LINEAR',
+                   'RAINSNOW_HBV $V_1$', 'RAINSNOW_CORRECTION $W_1$',
+                   'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$', 'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
+                   'Evaporation weight gen. $r_{5}$', 'Baseflow weight gen. $r_{6}$', 'Snow Balance weight gen. $r_{7}$']
+        ccc = (snowb_color, snowb_color)
+    elif (active_snowproc == "HMETS" or active_snowproc == "SIMPLE" or active_snowproc == "HBV"):
+        procopt = ['INF_HMETS', 'INF_VIC_ARNO', 'INF_HBV', 'BASE_LINEAR_ANALYTIC', 'BASE_VIC', 'BASE_TOPMODEL',
+                   'SOILEVAP_ALL', 'SOILEVAP_TOPMODEL', 'BASE_LINEAR_ANALYTIC', 'BASE_POWER_LAW', 'SNOBAL_'+active_snowproc,
+                   'CONVOL_GAMMA', 'CONVOL_GAMMA_2', 'POTMELT_HMETS', 'PERC_LINEAR',
+                   'RAINSNOW_HBV $V_1$', 'RAINSNOW_CORRECTION $W_1$',
+                   'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$', 'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
+                   'Evaporation weight gen. $r_{5}$', 'Baseflow weight gen. $r_{6}$']
+        ccc = (snowb_color)
+        ccc = (ccc,)
+    else:
+        # all
+        procopt = ['INF_HMETS $M_1$', 'INF_VIC_ARNO $M_2$', 'INF_HBV $M_3$',
+                   'BASE_LINEAR_ANALYTIC $N_1$', 'BASE_VIC $N_2$', 'BASE_TOPMODEL $N_3$',
+                   'SOILEVAP_ALL $O_1$', 'SOILEVAP_TOPMODEL $O_2$',
+                   'BASE_LINEAR_ANALYTIC $P_1$', 'BASE_POWER_LAW $P_2$',
+                   'SNOBAL_HMETS $Q_1$', 'SNOBAL_SIMPLE_MELT $Q_2$', 'SNOBAL_HBV $Q_3$',
+                   'CONVOL_GAMMA $R_1$', 'CONVOL_GAMMA_2 $S_1$', 'POTMELT_HMETS $T_1$', 'PERC_LINEAR $U_1$',
+                   'RAINSNOW_HBV $V_1$', 'RAINSNOW_CORRECTION $W_1$',
+                   'Infiltration weight gen. $r_{1}$', 'Infiltration weight gen. $r_{2}$', 'Quickflow weight gen. $r_{3}$', 'Quickflow weight gen. $r_{4}$',
+                   'Evaporation weight gen. $r_{5}$', 'Baseflow weight gen. $r_{6}$', 'Snow Balance weight gen. $r_{7}$', 'Snow Balance weight gen. $r_{8}$']
+        ccc = (snowb_color, snowb_color, snowb_color)
 
     keys = sobol_indexes['process_options']['wsi'].keys()
     ikey = variable
@@ -683,15 +867,38 @@ if __name__ == '__main__':
         print("Variables in pickle: ",keys)
         print("Variable given:      ",variable)
         raise ValueError("Variable given is not available in Pickle!")
+
+    if ikey == 'Q':
+        iprocopt = 'P_1'
+        sublist = [s for s in procopt if iprocopt in s]
+        iiii = procopt.index(sublist[0])
+        print(sublist[0]+' :: ST^w_{'+iprocopt+'} = ',sobol_indexes['process_options']['wsti'][ikey][iiii])
+
+        iprocopt = 'P_2'
+        sublist = [s for s in procopt if iprocopt in s]
+        iiii = procopt.index(sublist[0])
+        print(sublist[0]+' :: ST^w_{'+iprocopt+'} = ',sobol_indexes['process_options']['wsti'][ikey][iiii])
+
+        iprocopt = 'R_1'
+        sublist = [s for s in procopt if iprocopt in s]
+        iiii = procopt.index(sublist[0])
+        print(sublist[0]+' :: ST^w_{'+iprocopt+'} = ',sobol_indexes['process_options']['wsti'][ikey][iiii])
+
+        iprocopt = 'S_1'
+        sublist = [s for s in procopt if iprocopt in s]
+        iiii = procopt.index(sublist[0])
+        print(sublist[0]+' :: ST^w_{'+iprocopt+'} = ',sobol_indexes['process_options']['wsti'][ikey][iiii])
+
+    procopt = [ jams.str2tex(ii,usetex=usetex) for ii in procopt ]
     
     nopt = np.shape(sobol_indexes['process_options']['wsi'][ikey])[0]
     mark1 = sub.bar(np.arange(nopt), sobol_indexes['process_options']['wsti'][ikey], align='center', alpha=0.6,
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color,
                            evapo_color, evapo_color,
-                           basef_color, basef_color,
-                           snowb_color, snowb_color, snowb_color, 
+                           basef_color, basef_color)+ccc+(
                            convs_color, convd_color, potme_color, perco_color,
+                           rspar_color, rscor_color,
                            infil_color, infil_color,
                            quick_color, quick_color,
                            evapo_color,
@@ -701,9 +908,9 @@ if __name__ == '__main__':
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color,
                            evapo_color, evapo_color,
-                           basef_color, basef_color,
-                           snowb_color, snowb_color, snowb_color, 
+                           basef_color, basef_color)+ccc+(
                            convs_color, convd_color, potme_color, perco_color,
+                           rspar_color, rscor_color,
                            infil_color, infil_color,
                            quick_color, quick_color,
                            evapo_color,
@@ -724,9 +931,12 @@ if __name__ == '__main__':
     # Process sensitivities
     # -------------
     iplot += 1
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace))
+    #                  [left, bottom, width, height] 
+    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row,0.0,-unequal_second_row,0.0])
 
-    processes = ['Infiltration','Quickflow','Evaporation','Baseflow','Snow Balance', 'Convolution\n(Surface Runoff)', 'Convolution\n(Delayed Runoff)', 'Potential Melt', 'Percolation'] #, 'Soil Model']
+    processes = ['Infiltration $M$','Quickflow $N$','Evaporation $O$','Baseflow $P$','Snow Balance $Q$', 'Convolution (srfc runoff) $R$',
+                 'Convolution (dlyd runoff) $S$', 'Potential Melt $T$', 'Percolation $U$',
+                 'Rain-Snow Partitioning $V$', 'Rain-Snow Correction $W$']  # , 'Soil model'
     processes = [ jams.str2tex(ii,usetex=usetex) for ii in processes ]
 
     keys = sobol_indexes['processes']['wsi'].keys()
@@ -736,14 +946,37 @@ if __name__ == '__main__':
         print("Variables in pickle: ",keys)
         print("Variable given:      ",variable)
         raise ValueError("Variable given is not available in Pickle!")
+
+    if (ikey == 'Q'):
+        ppp = [1,4,7]
+        print("sel processes: ",[unichr(ord('M')+ipp) for ipp in ppp])
+        perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
+        print("Overall sensitivity of sel processes: ",perc,"%")
+
+        ppp = [3,5,6]
+        print("sel processes: ",[unichr(ord('M')+ipp) for ipp in ppp])
+        perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
+        print("Overall sensitivity of sel processes: ",perc,"%")
+
+        ppp = [0,2,8]
+        print("sel processes: ",[unichr(ord('M')+ipp) for ipp in ppp])
+        perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
+        print("Overall sensitivity of sel processes: ",perc,"%")
+
+        ppp = [7,9,10]
+        print("sel processes: ",[unichr(ord('M')+ipp) for ipp in ppp])
+        perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
+        print("Overall sensitivity of sel processes: ",perc,"%")
     
     nproc = np.shape(sobol_indexes['processes']['wsi'][ikey])[0]    
     mark1 = sub.bar(    np.arange(nproc), sobol_indexes['processes']['wsti'][ikey], align='center', alpha=0.6,
                         color=(infil_color, quick_color, evapo_color, basef_color, snowb_color,
-                               convs_color, convd_color, potme_color, perco_color)) #, soilm_color))    # STi wmean
+                               convs_color, convd_color, potme_color, perco_color,
+                               rspar_color, rscor_color)) #, soilm_color))    # STi wmean
     mark2 = sub.bar(    np.arange(nproc), sobol_indexes['processes']['wsi'][ikey], align='center', alpha=1.0,
                         color=(infil_color, quick_color, evapo_color, basef_color, snowb_color,
-                               convs_color, convd_color, potme_color, perco_color)) #, soilm_color))    # Si  wmean
+                               convs_color, convd_color, potme_color, perco_color,
+                               rspar_color, rscor_color)) #, soilm_color))    # Si  wmean
 
     sub.set_ylim(ylim)
     
@@ -752,29 +985,36 @@ if __name__ == '__main__':
     #plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
     jams.abc2plot(sub,dxabc,dyabc,iplot-1,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
-    
+
+    #                  [left, bottom, width, height] 
+    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.0])
+    sub.axis('off')
     # Create custom artists
     #      (left, bottom), width, height
-    boxSi_1   = patches.Rectangle( (0.00, -0.70), 0.03, 0.05, color = infil_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_2   = patches.Rectangle( (0.04, -0.70), 0.03, 0.05, color = quick_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_3   = patches.Rectangle( (0.08, -0.70), 0.03, 0.05, color = evapo_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_4   = patches.Rectangle( (0.12, -0.70), 0.03, 0.05, color = basef_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_5   = patches.Rectangle( (0.16, -0.70), 0.03, 0.05, color = snowb_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_6   = patches.Rectangle( (0.20, -0.70), 0.03, 0.05, color = convs_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_7   = patches.Rectangle( (0.24, -0.70), 0.03, 0.05, color = convd_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_8   = patches.Rectangle( (0.28, -0.70), 0.03, 0.05, color = potme_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_9   = patches.Rectangle( (0.32, -0.70), 0.03, 0.05, color = perco_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_10  = patches.Rectangle( (0.36, -0.70), 0.03, 0.05, color = soilm_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_1  = patches.Rectangle( (0.00, -0.83), 0.03, 0.05, color = infil_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_2  = patches.Rectangle( (0.04, -0.83), 0.03, 0.05, color = quick_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_3  = patches.Rectangle( (0.08, -0.83), 0.03, 0.05, color = evapo_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_4  = patches.Rectangle( (0.12, -0.83), 0.03, 0.05, color = basef_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_5  = patches.Rectangle( (0.16, -0.83), 0.03, 0.05, color = snowb_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_6  = patches.Rectangle( (0.20, -0.83), 0.03, 0.05, color = convs_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_7  = patches.Rectangle( (0.24, -0.83), 0.03, 0.05, color = convd_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_8  = patches.Rectangle( (0.28, -0.83), 0.03, 0.05, color = potme_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_9  = patches.Rectangle( (0.32, -0.83), 0.03, 0.05, color = perco_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_10 = patches.Rectangle( (0.36, -0.83), 0.03, 0.05, color = soilm_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_1   = patches.Rectangle( (0.00, -0.75), 0.03, 0.05, color = infil_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_2   = patches.Rectangle( (0.04, -0.75), 0.03, 0.05, color = quick_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_3   = patches.Rectangle( (0.08, -0.75), 0.03, 0.05, color = evapo_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_4   = patches.Rectangle( (0.12, -0.75), 0.03, 0.05, color = basef_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_5   = patches.Rectangle( (0.16, -0.75), 0.03, 0.05, color = snowb_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_6   = patches.Rectangle( (0.20, -0.75), 0.03, 0.05, color = convs_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_7   = patches.Rectangle( (0.24, -0.75), 0.03, 0.05, color = convd_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_8   = patches.Rectangle( (0.28, -0.75), 0.03, 0.05, color = potme_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_9   = patches.Rectangle( (0.32, -0.75), 0.03, 0.05, color = perco_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_10  = patches.Rectangle( (0.36, -0.75), 0.03, 0.05, color = rspar_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_11  = patches.Rectangle( (0.40, -0.75), 0.03, 0.05, color = rscor_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_12  = patches.Rectangle( (0.44, -0.75), 0.03, 0.05, color = soilm_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_1  = patches.Rectangle( (0.00, -0.90), 0.03, 0.05, color = infil_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_2  = patches.Rectangle( (0.04, -0.90), 0.03, 0.05, color = quick_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_3  = patches.Rectangle( (0.08, -0.90), 0.03, 0.05, color = evapo_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_4  = patches.Rectangle( (0.12, -0.90), 0.03, 0.05, color = basef_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_5  = patches.Rectangle( (0.16, -0.90), 0.03, 0.05, color = snowb_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_6  = patches.Rectangle( (0.20, -0.90), 0.03, 0.05, color = convs_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_7  = patches.Rectangle( (0.24, -0.90), 0.03, 0.05, color = convd_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_8  = patches.Rectangle( (0.28, -0.90), 0.03, 0.05, color = potme_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_9  = patches.Rectangle( (0.32, -0.90), 0.03, 0.05, color = perco_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_10 = patches.Rectangle( (0.36, -0.90), 0.03, 0.05, color = rspar_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_11 = patches.Rectangle( (0.40, -0.90), 0.03, 0.05, color = rscor_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_12 = patches.Rectangle( (0.44, -0.90), 0.03, 0.05, color = soilm_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
     sub.add_patch(boxSi_1)  ;  sub.add_patch(boxSTi_1)
     sub.add_patch(boxSi_2)  ;  sub.add_patch(boxSTi_2)
     sub.add_patch(boxSi_3)  ;  sub.add_patch(boxSTi_3)
@@ -785,9 +1025,11 @@ if __name__ == '__main__':
     sub.add_patch(boxSi_8)  ;  sub.add_patch(boxSTi_8)
     sub.add_patch(boxSi_9)  ;  sub.add_patch(boxSTi_9)
     sub.add_patch(boxSi_10) ;  sub.add_patch(boxSTi_10)
+    sub.add_patch(boxSi_11) ;  sub.add_patch(boxSTi_11)
+    sub.add_patch(boxSi_12) ;  sub.add_patch(boxSTi_12)
     
-    sub.text(0.42, -0.67, jams.str2tex("Sobol' main effect $\overline{S_i^w}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.42, -0.80, jams.str2tex("Sobol' total effect $\overline{ST_i^w}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.50, -0.72, jams.str2tex("Sobol' main effect $\overline{S_i^w}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.50, -0.87, jams.str2tex("Sobol' total effect $\overline{ST_i^w}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
 
 
     if (outtype == 'pdf'):
@@ -818,6 +1060,7 @@ if __name__ == '__main__':
     # Parameter sensitivities
     # -------------
     iplot += 1
+    #                  [left, bottom, width, height] 
     sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace)-[0.02,0,0,0])
 
     keys = sobol_indexes['processes']['sti'].keys()
@@ -846,13 +1089,13 @@ if __name__ == '__main__':
     # reshape such that (ntime,nproc) --> (nyears, 365, nproc)
     tmp_sobol   = copy.deepcopy(sobol_indexes['processes']['sti'][ikey][~leap,:])     # (ntime, nproc)
     tmp_weights = copy.deepcopy(weights)                                    # (ntime)
-    sobol_doy   = np.ones([np.int(ntime/ntime_doy),ntime_doy,nproc]) * -9999.0
-    weights_doy = np.ones([np.int(ntime/ntime_doy),ntime_doy]) * -9999.0
+    sobol_doy   = np.ones([ntime/ntime_doy,ntime_doy,nproc]) * -9999.0
+    weights_doy = np.ones([ntime/ntime_doy,ntime_doy]) * -9999.0
     for iproc in range(nproc):
-        sobol_doy[:,:,iproc]   = np.reshape(tmp_sobol[:,iproc],  [np.int(ntime/ntime_doy),ntime_doy])
-        # sobol_doy[:,:,iproc] = np.reshape(tmp_sobol[:,iproc],  [np.int(ntime/ntime_doy),ntime_doy])
-        sobol_doy[:,:,iproc]   = np.where(np.isinf(np.reshape(tmp_sobol[:,iproc],  [np.int(ntime/ntime_doy),ntime_doy])),np.nan,np.reshape(tmp_sobol[:,iproc],  [np.int(ntime/ntime_doy),ntime_doy]))
-    weights_doy[:,:] = np.reshape(tmp_weights[:],[np.int(ntime/ntime_doy),ntime_doy])
+        sobol_doy[:,:,iproc]   = np.reshape(tmp_sobol[:,iproc],  [ntime/ntime_doy,ntime_doy])
+        # sobol_doy[:,:,iproc] = np.reshape(tmp_sobol[:,iproc],  [ntime/ntime_doy,ntime_doy])
+        sobol_doy[:,:,iproc]   = np.where(np.isinf(np.reshape(tmp_sobol[:,iproc],  [ntime/ntime_doy,ntime_doy])),np.nan,np.reshape(tmp_sobol[:,iproc],  [ntime/ntime_doy,ntime_doy]))
+    weights_doy[:,:] = np.reshape(tmp_weights[:],[ntime/ntime_doy,ntime_doy])
 
     # average over years
     sobol_doy_mean   = np.nanmean(sobol_doy,axis=0)
@@ -862,7 +1105,7 @@ if __name__ == '__main__':
     csum   = np.sum(sobol_doy_mean,axis=1)
 
     # colors for all processes
-    colors = [infil_color, quick_color, evapo_color, basef_color, snowb_color, convs_color, convd_color, potme_color, perco_color, soilm_color]
+    colors = [infil_color, quick_color, evapo_color, basef_color, snowb_color, convs_color, convd_color, potme_color, perco_color, rspar_color, rscor_color, soilm_color]
 
     
     width = 1.0
@@ -873,18 +1116,36 @@ if __name__ == '__main__':
                          color=colors[iproc],
                          bottom=np.sum(sobol_doy_mean[:,0:iproc],axis=1)/csum)
 
+    day1 = 150
+    day2 = 300
+    print("Average sensitivity of processes druing summer (DOY "+str(day1)+"-"+str(day2)+"):")
+    for iproc in range(nproc):
+        print(ikey," :: ",iproc," :: ",np.mean((sobol_doy_mean[:,iproc]/csum)[day1:day2])*100.0,"%")
+
     sub2 = sub.twinx()
     sub2.plot(np.arange(ntime_doy),weights_doy_mean,color='black',linewidth=lwidth*2)
     sub2.set_ylabel(jams.str2tex('Weight',usetex=usetex), color='black')
+
+    # only for month ticks instead of DOY
+    sub3 = sub.twiny()
+    #sub3.plot(np.arange(ntime_doy),weights_doy_mean,color='black',linewidth=lwidth*0.)  # second time plot (fake)
+    monthlength = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
+    sub3.set_xlim([0,365])
+    sub3.set_xlabel(jams.str2tex('Months',usetex=usetex), color='black')
+    sub3.set_xticks(np.cumsum(monthlength)) #, ['J','F','M','A','M','J','J','A','S','O','N','D'])
+    sub3.set_xticklabels('')
+    sub3.set_xticks((monthlength*1.0/2.)+np.cumsum(np.append(0,monthlength)[0:12]), minor=True)
+    sub3.set_xticklabels(['J','F','M','A','M','J','J','A','S','O','N','D'], minor=True)
+    sub3.tick_params(which='minor',length=0)   # dont show minor ticks; only labels
+    #plt.xticks(np.cumsum(np.array([31,28,31,30,31,30,31,31,30,31,30,31])), ['J','F','M','A','M','J','J','A','S','O','N','D'])
 
     sub.set_xlim([0,ntime_doy])
     sub.set_ylim(ylim)
 
     #npara = len(paras)
     #plt.xticks(np.arange(npara), paras,rotation=90,fontsize='x-small')
-
-    basin = inputfile.split('/')[-2]
-    sub.set_title(jams.str2tex('Basin: '+basin,usetex=usetex))
+    
+    # sub.set_title(jams.str2tex('Sensitivities of Model Processes',usetex=usetex))
     sub.set_xlabel(jams.str2tex("Day of Year",usetex=usetex))
     sub.set_ylabel(jams.str2tex("(normalized) Total\n Sobol' Index $ST_i$",usetex=usetex))
 
@@ -899,6 +1160,8 @@ if __name__ == '__main__':
     boxSTi_7  = patches.Rectangle( (0.22, -0.62), 0.02, 0.05, color = convd_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
     boxSTi_8  = patches.Rectangle( (0.22, -0.70), 0.02, 0.05, color = potme_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
     boxSTi_9  = patches.Rectangle( (0.22, -0.78), 0.02, 0.05, color = perco_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_10 = patches.Rectangle( (0.22, -0.86), 0.02, 0.05, color = rspar_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_11 = patches.Rectangle( (0.22, -0.94), 0.02, 0.05, color = rscor_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
     #boxSTi_10 = patches.Rectangle( (0.22, -0.86), 0.02, 0.05, color = soilm_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
     line      = patches.Rectangle( (0.72, -0.52), 0.02, 0.00, color = 'black',     alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
     sub.add_patch(boxSTi_1)
@@ -910,19 +1173,23 @@ if __name__ == '__main__':
     sub.add_patch(boxSTi_7)
     sub.add_patch(boxSTi_8)
     sub.add_patch(boxSTi_9)
-    #sub.add_patch(boxSTi_10)
+    sub.add_patch(boxSTi_10)
+    sub.add_patch(boxSTi_11)
+    #sub.add_patch(boxSTi_12)
     sub.add_patch(line)
 
     sub.text(0.00, -0.40, jams.str2tex("Processes:",usetex=usetex),                   horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.53, jams.str2tex("Infiltration",usetex=usetex),                 fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.61, jams.str2tex("Quickflow",usetex=usetex),                    fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.69, jams.str2tex("Evaporation",usetex=usetex),                  fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.77, jams.str2tex("Baseflow",usetex=usetex),                     fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.85, jams.str2tex("Snow Balance",usetex=usetex),                 fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.53, jams.str2tex("Convolution (Surface Runoff)",usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.61, jams.str2tex("Convolution (Delayed Runoff)",usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.69, jams.str2tex("Potential Melt",usetex=usetex),               fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.77, jams.str2tex("Percolation",usetex=usetex),                  fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.53, jams.str2tex("Infiltration $M$",usetex=usetex),                 fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.61, jams.str2tex("Quickflow $N$",usetex=usetex),                    fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.69, jams.str2tex("Evaporation $O$",usetex=usetex),                  fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.77, jams.str2tex("Baseflow $P$",usetex=usetex),                     fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.85, jams.str2tex("Snow Balance $Q$",usetex=usetex),                 fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.53, jams.str2tex("Convolution (Surface Runoff) $R$",usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.61, jams.str2tex("Convolution (Delayed Runoff) $S$",usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.69, jams.str2tex("Potential Melt $T$",usetex=usetex),               fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.77, jams.str2tex("Percolation $U$",usetex=usetex),                  fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.85, jams.str2tex("Rain-Snow Partitioning $V$",usetex=usetex),       fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.93, jams.str2tex("Rain-Snow Correction $W$",usetex=usetex),         fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     #sub.text(0.26, -0.85, jams.str2tex("Soil Model",usetex=usetex),                   fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     sub.text(0.76, -0.53, jams.str2tex("Weight of Timestep",usetex=usetex),           fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     
@@ -936,52 +1203,68 @@ if __name__ == '__main__':
         fig.savefig(pngfile, transparent=transparent, bbox_inches=bbox_inches, pad_inches=pad_inches)
         plt.close(fig)
 
-
-
-
-
-    # # -------------------------------------------------
-    # # actual model outputs f_a and f_b per model output key
-    # # -------------------------------------------------
+    # -------------------------------------------------
+    # actual model outputs f_a and f_b per model output key
+    # -------------------------------------------------
     
-    # ifig += 1
-    # iplot = 0
-    # print('Plot - Fig ', ifig)
-    # fig = plt.figure(ifig)
+    ifig += 1
+    iplot = 0
+    print('Plot - Fig ', ifig)
+    fig = plt.figure(ifig)
 
-    # # -----------------------
-    # # plot
-    # # -----------------------
-    # keys = sobol_indexes['paras']['msi'].keys()
-    # ikey = variable
-    # if not( variable in keys):
-    #     print("")
-    #     print("Variables in pickle: ",keys)
-    #     print("Variable given:      ",variable)
-    #     raise ValueError("Variable given is not available in Pickle!")
+    # -----------------------
+    # plot
+    # -----------------------
+    keys = sobol_indexes['paras']['msi'].keys()
+    ikey = variable
+    if not( variable in keys):
+        print("")
+        print("Variables in pickle: ",keys)
+        print("Variable given:      ",variable)
+        raise ValueError("Variable given is not available in Pickle!")
 
-    # # -------------
-    # # model outputs f_a and f_b
-    # # -------------
-    # for ikey in keys:
-        
-    #     iplot += 1
-    #     sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
+    # -------------
+    # model outputs f_a and f_b
+    # -------------        
+    iplot += 1
+    sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
 
-    #     p1 = sub.plot(setup['f_a'][ikey],color='gray',alpha=0.6)
-    #     p2 = sub.plot(setup['f_b'][ikey],color='gray',alpha=0.6)
-    #     active_snowproc = "+".join(inputfile.split('.')[0].split('_')[3:])
-    #     sub.set_title(jams.str2tex("Processes: "+active_snowproc+"  Model output: "+ikey,usetex=usetex))
+    f_ab = np.concatenate((setup['f_a'][ikey], setup['f_b'][ikey]), axis=1)[~leap,:]
+    f_ab_reshape = np.ones([ntime/ntime_doy * nsets * 2,ntime_doy]) * -9999.0
+    for iset in range(nsets*2):
+        f_ab_reshape[iset*(ntime/ntime_doy):(iset+1)*(ntime/ntime_doy),0:ntime_doy] = np.reshape(f_ab[:,iset], [ntime/ntime_doy,ntime_doy])
+    p05 = np.percentile(f_ab_reshape, 5,axis=0)
+    p25 = np.percentile(f_ab_reshape,25,axis=0)
+    p50 = np.percentile(f_ab_reshape,50,axis=0)
+    p75 = np.percentile(f_ab_reshape,75,axis=0)
+    p95 = np.percentile(f_ab_reshape,95,axis=0)
 
-    # if (outtype == 'pdf'):
-    #     pdf_pages.savefig(fig)
-    #     plt.close(fig)
-    # elif (outtype == 'png'):
-    #     pngfile = pngbase+"{0:04d}".format(ifig)+".png"
-    #     fig.savefig(pngfile, transparent=transparent, bbox_inches=bbox_inches, pad_inches=pad_inches)
-    #     plt.close(fig)
+    p1 = sub.fill_between(np.arange(ntime_doy),p05,p95,color='gray', alpha=0.6)
+    p2 = sub.fill_between(np.arange(ntime_doy),p25,p75,color='gray', alpha=0.8)
+    p3 = sub.plot(        np.arange(ntime_doy),p50,    color='black',alpha=1.0,linewidth=lwidth*2)
 
+    box_05_95  = patches.Rectangle( (0.8, 0.90), 0.02, 0.05, color = 'gray',   alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    box_25_75  = patches.Rectangle( (0.8, 0.82), 0.02, 0.05, color = 'gray',   alpha=0.8, fill  = True, transform=sub.transAxes, clip_on=False )
+    line       = patches.Rectangle( (0.8, 0.76), 0.02, 0.00, color = 'black',  alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
 
+    sub.add_patch(box_05_95)
+    sub.add_patch(box_25_75)
+    sub.add_patch(line)
+
+    sub.text(0.84, 0.90, jams.str2tex('$[p_{5}$, $p_{95}]$', usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.84, 0.82, jams.str2tex('$[p_{25}$, $p_{75}]$',usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.84, 0.74, jams.str2tex('$p_{50}$',           usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    
+    #active_snowproc = "+".join(inputfile.split('.')[0].split('_')[3:])
+    #sub.set_title(jams.str2tex("Processes: "+active_snowproc+"  Model output: "+ikey,usetex=usetex))
+
+    if (outtype == 'pdf'):
+        pdf_pages.savefig(fig)
+        plt.close(fig)
+    elif (outtype == 'png'):
+        pngfile = pngbase+"{0:04d}".format(ifig)+".png"
+        fig.savefig(pngfile, transparent=transparent, bbox_inches=bbox_inches, pad_inches=pad_inches)
+        plt.close(fig)
         
       
 
