@@ -1086,20 +1086,27 @@ if __name__ == '__main__':
     denomA  = 1./np.sum(varA)
     weights = varA*denomA # (ntime, nproc)
 
+    # average hydrograph
+    median_Q = np.median(setup['f_a'][ikey][~leap,:],axis=1)
+
     # reshape such that (ntime,nproc) --> (nyears, 365, nproc)
-    tmp_sobol   = copy.deepcopy(sobol_indexes['processes']['sti'][ikey][~leap,:])     # (ntime, nproc)
-    tmp_weights = copy.deepcopy(weights)                                    # (ntime)
-    sobol_doy   = np.ones([int(ntime/ntime_doy),ntime_doy,nproc]) * -9999.0
-    weights_doy = np.ones([int(ntime/ntime_doy),ntime_doy]) * -9999.0
+    tmp_sobol    = copy.deepcopy(sobol_indexes['processes']['sti'][ikey][~leap,:])     # (ntime, nproc)
+    tmp_weights  = copy.deepcopy(weights)  # (ntime)
+    tmp_median_Q = copy.deepcopy(median_Q)   # (ntime)
+    sobol_doy    = np.ones([int(ntime/ntime_doy),ntime_doy,nproc]) * -9999.0
+    weights_doy  = np.ones([int(ntime/ntime_doy),ntime_doy]) * -9999.0
+    median_Q_doy = np.ones([int(ntime/ntime_doy),ntime_doy]) * -9999.0
     for iproc in range(nproc):
         sobol_doy[:,:,iproc]   = np.reshape(tmp_sobol[:,iproc],  [int(ntime/ntime_doy),ntime_doy])
         # sobol_doy[:,:,iproc] = np.reshape(tmp_sobol[:,iproc],  [int(ntime/ntime_doy),ntime_doy])
         sobol_doy[:,:,iproc]   = np.where(np.isinf(np.reshape(tmp_sobol[:,iproc],  [int(ntime/ntime_doy),ntime_doy])),np.nan,np.reshape(tmp_sobol[:,iproc],  [int(ntime/ntime_doy),ntime_doy]))
-    weights_doy[:,:] = np.reshape(tmp_weights[:],[int(ntime/ntime_doy),ntime_doy])
+    weights_doy[:,:]  = np.reshape(tmp_weights[:],  [int(ntime/ntime_doy),ntime_doy])
+    median_Q_doy[:,:] = np.reshape(tmp_median_Q[:], [int(ntime/ntime_doy),ntime_doy])
 
     # average over years
-    sobol_doy_mean   = np.nanmean(sobol_doy,axis=0)
-    weights_doy_mean = np.nanmean(weights_doy,axis=0)
+    sobol_doy_mean    = np.nanmean(sobol_doy,axis=0)
+    weights_doy_mean  = np.nanmean(weights_doy,axis=0)
+    median_Q_doy_mean = np.nanmean(median_Q_doy,axis=0)
 
     # to scale Sobol' indexes such that they sum up to 1.0 (over all processes)
     csum   = np.sum(sobol_doy_mean,axis=1)
@@ -1115,6 +1122,22 @@ if __name__ == '__main__':
                          width,
                          color=colors[iproc],
                          bottom=np.sum(sobol_doy_mean[:,0:iproc],axis=1)/csum)
+
+    ff = open('.'.join(inputfile.split('.')[:-1])+'.csv',"w")
+    ff.write('# CSV of process sensitivities over time\n')
+    ff.write('# Original file: '+inputfile+'\n')
+    ff.write('date; '+'; '.join(processes)+'\n')
+    for itime in range(ntime_doy):
+        ff.write((start_date+datetime.timedelta(days=itime)).strftime("%Y-%m-%d")+'; '+'; '.join(jams.astr(sobol_doy_mean[itime,:]/csum[itime],prec=5))+'\n')
+    ff.close()
+
+    ff = open('.'.join(inputfile.split('.')[:-1])+'_hydrograph.csv',"w")
+    ff.write('# Mean over 20 years of median hydrograph of all model runs sets A\n')
+    ff.write('# Original file: '+inputfile+'\n')
+    ff.write('date; median_Q_doy_mean \n')
+    for itime in range(ntime_doy):
+        ff.write((start_date+datetime.timedelta(days=itime)).strftime("%Y-%m-%d")+'; '+jams.astr(median_Q_doy_mean[itime],prec=5)+'\n')
+    ff.close()
 
     day1 = 150
     day2 = 300
