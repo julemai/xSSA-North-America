@@ -401,7 +401,7 @@ if __name__ == '__main__':
     # -----------------------
     # plot
     # -----------------------
-    ylim = [-0.1, 0.6]
+    ylim = [-0.1, 0.7]
 
     # -------------
     # Parameter sensitivities
@@ -601,7 +601,7 @@ if __name__ == '__main__':
 
     processes = ['Infiltration $M$','Quickflow $N$','Evaporation $O$','Baseflow $P$','Snow Balance $Q$', 'Convolution (srfc runoff) $R$',
                  'Convolution (dlyd runoff) $S$', 'Potential Melt $T$', 'Percolation $U$',
-                 'Rain-Snow Partitioning $V$', 'Rain-Snow Correction $W$']  # , 'Soil model'
+                 'Rain-Snow Partitioning $V$', 'Precipitation Correction $W$']  # , 'Soil model'
     processes = [ jams.str2tex(ii,usetex=usetex) for ii in processes ]
 
     keys = sobol_indexes['processes']['msi'].keys()
@@ -629,7 +629,7 @@ if __name__ == '__main__':
     jams.abc2plot(sub,dxabc,dyabc,iplot-1,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
 
     #                  [left, bottom, width, height] 
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.0])
+    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.02])
     sub.axis('off')
     # Create custom artists
     #      (left, bottom), width, height
@@ -936,7 +936,7 @@ if __name__ == '__main__':
 
     processes = ['Infiltration $M$','Quickflow $N$','Evaporation $O$','Baseflow $P$','Snow Balance $Q$', 'Convolution (srfc runoff) $R$',
                  'Convolution (dlyd runoff) $S$', 'Potential Melt $T$', 'Percolation $U$',
-                 'Rain-Snow Partitioning $V$', 'Rain-Snow Correction $W$']  # , 'Soil model'
+                 'Rain-Snow Partitioning $V$', 'Precipitation Correction $W$']  # , 'Soil model'
     processes = [ jams.str2tex(ii,usetex=usetex) for ii in processes ]
 
     keys = sobol_indexes['processes']['wsi'].keys()
@@ -987,7 +987,7 @@ if __name__ == '__main__':
     jams.abc2plot(sub,dxabc,dyabc,iplot-1,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
 
     #                  [left, bottom, width, height] 
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.0])
+    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.02])
     sub.axis('off')
     # Create custom artists
     #      (left, bottom), width, height
@@ -1123,20 +1123,28 @@ if __name__ == '__main__':
                          color=colors[iproc],
                          bottom=np.sum(sobol_doy_mean[:,0:iproc],axis=1)/csum)
 
-    ff = open('.'.join(inputfile.split('.')[:-1])+'.csv',"w")
-    ff.write('# CSV of process sensitivities over time\n')
-    ff.write('# Original file: '+inputfile+'\n')
-    ff.write('date; '+'; '.join(processes)+'\n')
+    ff = open('.'.join(inputfile.split('.')[:-1])+'_wSTi_processes.csv',"w")
+    # ff.write('# CSV of process sensitivities over time\n')
+    # ff.write('# Original file: '+inputfile+'\n')
+    ff.write('date, '+', '.join(processes[::-1])+'\n')
     for itime in range(ntime_doy):
-        ff.write((start_date+datetime.timedelta(days=itime)).strftime("%Y-%m-%d")+'; '+'; '.join(jams.astr(sobol_doy_mean[itime,:]/csum[itime],prec=5))+'\n')
+        ff.write((start_date+datetime.timedelta(days=itime)).strftime("%Y-%m-%d")+', '+', '.join(jams.astr(sobol_doy_mean[itime,::-1]/csum[itime],prec=5))+'\n')
     ff.close()
 
-    ff = open('.'.join(inputfile.split('.')[:-1])+'_hydrograph.csv',"w")
-    ff.write('# Mean over 20 years of median hydrograph of all model runs sets A\n')
-    ff.write('# Original file: '+inputfile+'\n')
-    ff.write('date; median_Q_doy_mean \n')
+    # ff = open('.'.join(inputfile.split('.')[:-1])+'_hydrograph.csv',"w")
+    # ff.write('# Mean over 20 years of median hydrograph of all model runs sets A\n')
+    # ff.write('# Original file: '+inputfile+'\n')
+    # ff.write('date, median_Q_doy_mean \n')
+    # for itime in range(ntime_doy):
+    #     ff.write((start_date+datetime.timedelta(days=itime)).strftime("%Y-%m-%d")+', '+jams.astr(median_Q_doy_mean[itime],prec=5)+'\n')
+    # ff.close()
+
+    ff = open('.'.join(inputfile.split('.')[:-1])+'_wSTi_weights.csv',"w")
+    #ff.write('# Mean over 20 years of median hydrograph of all model runs sets A\n')
+    #ff.write('# Original file: '+inputfile+'\n')
+    ff.write('date, weight \n')
     for itime in range(ntime_doy):
-        ff.write((start_date+datetime.timedelta(days=itime)).strftime("%Y-%m-%d")+'; '+jams.astr(median_Q_doy_mean[itime],prec=5)+'\n')
+        ff.write((start_date+datetime.timedelta(days=itime)).strftime("%Y-%m-%d")+', '+jams.astr(weights_doy_mean[itime],prec=5)+'\n')
     ff.close()
 
     day1 = 150
@@ -1212,7 +1220,7 @@ if __name__ == '__main__':
     sub.text(0.26, -0.69, jams.str2tex("Potential Melt $T$",usetex=usetex),               fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     sub.text(0.26, -0.77, jams.str2tex("Percolation $U$",usetex=usetex),                  fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     sub.text(0.26, -0.85, jams.str2tex("Rain-Snow Partitioning $V$",usetex=usetex),       fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.93, jams.str2tex("Rain-Snow Correction $W$",usetex=usetex),         fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.93, jams.str2tex("Precipitation Correction $W$",usetex=usetex),         fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     #sub.text(0.26, -0.85, jams.str2tex("Soil Model",usetex=usetex),                   fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     sub.text(0.76, -0.53, jams.str2tex("Weight of Timestep",usetex=usetex),           fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     
