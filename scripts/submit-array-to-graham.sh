@@ -3,20 +3,19 @@
 # submit with:
 #       sbatch submit-array-to-graham.sh   
 
-#SBATCH --mem-per-cpu=50G                          # memory; default unit is megabytes
+#SBATCH --mem-per-cpu=7G                          # memory; default unit is megabytes
 #SBATCH --output=/dev/null
-#SBATCH --time=3-00:00:00
-#SBATCH --account=rpp-hwheater 
+#SBATCH --time=6-00:00:00
+#SBATCH --account=rpp-kshook
 #SBATCH --mail-user=juliane.mai@uwaterloo.ca
 #SBATCH --mail-type=FAIL
 #SBATCH --job-name=sa-canopex
-#SBATCH --array=1-601
+#SBATCH --array=1-553
 
 # job-id  :: ${SLURM_ARRAY_JOB_ID}
 # task-id :: ${SLURM_ARRAY_TASK_ID}
 
-# ntasks=645 # (9 basins per task --> time=6-18:00:00 --> 5798 basins total)
-ntasks=601   # (5 basins per task --> time=6-18:00:00 --> remaining 3002 basins)
+ntasks=553 # (6 basins per task --> time=6-00:00:00 --> 553*6 = 3318 ~> 3316 basins total)
 nsets=1000
 
 # nsets =   10 -->      7.0min/basin  --> 6.8h for each of 100 tasks                 #SBATCH --mem-per-cpu=3G
@@ -31,14 +30,14 @@ cd /home/julemai/projects/rpp-hwheater/julemai/xSSA-North-America/scripts
 source ../env-3.5/bin/activate
 
 folders=$(  \ls -d ../data_in/data_obs/*/ | cut -d '/' -f 4 | sort )
+folders=$( cat basins_5yr_nse-gt-05.dat )                             # <<<<<<<<<<<< only basins with more than 5 years (calibrated) and NSE > 0.5
 
 # select only folders that don't have yet a results file
 # >>>>> if run all basins again then uncomment following line
-# folders=$( for ff in ${folders} ; do if [ ! -e ../data_out/${ff}/results_nsets${nsets}.pkl ] ; then echo ${ff} ; fi ; done )
 folders=$( for ff in ${folders} ; do if [ ! -e ../data_out/${ff}/results_nsets${nsets}.token ] ; then echo ${ff} ; fi ; done )
 
-nfolders=$( for ff in ${folders} ; do echo ${ff} ; done | wc -l )         # 5797 (or whatever is not done yet)
-step=$( echo $(( ${nfolders}/${ntasks} + 1 )) )                           #   58 (or whatever is not done yet)
+nfolders=$( for ff in ${folders} ; do echo ${ff} ; done | wc -l )         # 3316 (or whatever is not done yet)
+step=$( echo $(( ${nfolders}/${ntasks} + 1 )) )                           #    6 (or whatever is not done yet)
 step=$( echo $( echo "${nfolders}/${ntasks}" | bc -l ) | cut -d '.' -f 1 )
 step=$(( ${step} + 1 ))
 
@@ -93,22 +92,6 @@ else
     echo 'Nothing to do!'
 fi
 
-# 2 sets
-# job 21811270   :: run with 90min --> time out --> about 10/58 basins per tasks not finished  (4793 of 5797 basins)
-# job 21815339   :: run with 30min --> only last 15 basins each                                (4808 of 5797 basins)
-# job 21817272   :: redo only basins that are not finished yet 90min -->                       (5786 of 5797 basins)
 
-
-
-# 06671000  --> ERROR : CGauge::Initialize: Raven cannot have blank data in daily temperature time series (Gauge: Gauge1, n=5537)
-#           --> derived avg temp is nodata --> line 19787: -4.1490000 1.68000000 --> max temp changed to 1.681
-# 08DD001   --> ERROR : CGauge::Initialize: excessively small or large average temperature (<-60C or >60C) reported at gauge
-#           --> 119.46062622 --> 19.46062622
-
-
-
-# 1000 sets, 5798 basins
-# job 25208219
-
-# 1000 sets, 3002 basins
-# job 28161689
+# 1000 sets, 3316 basins
+# job ID: 
