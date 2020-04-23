@@ -20,3 +20,4 @@ env-3.5/bin
 env-3.5/include
 env-3.5/lib
 env-3.5/share
+*.exe
