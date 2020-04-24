@@ -1,4 +1,4 @@
-basin_id;basin_name;lat;lon;area_km2;elevation_m;slope_deg;forest_frac;lat_gauge;lon_gauge;gravelius_frac;perimeter_m;aspect_deg;grass_frac;wetland_frac;water_frac;urban_frac;shrubs_frac;crops_frac;snowice_frac
+basin_id;basin_name;lat;lon;area_km2;elevation_m;slope_deg;forest_frac;lat_gauge_deg;lon_gauge_deg;gravelius_frac;perimeter_km;aspect_deg;grass_frac;wetland_frac;water_frac;urban_frac;shrubs_frac;crops_frac;snowice_frac
 01010000;St. John River at Ninemile Bridge, Maine;46.45840316;-70.03653563;3471.689421;421.8832159;2.13604739;0.59135509;46.70055556;-69.7155556;2.761136253;576.6097863;89.77697382;0.008025274;0.156864537;0.017284556;0.020083297;0.164833697;0.041553549;0
 01010500;St. John River at Dickey, Maine;46.74962916;-69.81155208;6938.20108;395.8600736;2.75422021;0.63537767;47.11305556;-69.0880556;2.844832778;840.2005494;126.6673541;0.008891031;0.126424703;0.017752542;0.01704787;0.156118576;0.038387605;0
 01013500;Fish River near Fort Kent, Maine;47.00766207;-68.57631289;2260.093113;276.6773409;4.23782479;0.54248656;47.2375;-68.58277778;3.013488862;505.798407;142.1576144;0.008305924;0.156749349;0.096533387;0.017502226;0.099027423;0.079395129;0
