@@ -1,0 +1,5 @@
+Knoben climate indexes 
+
+fraction of precipitation as snow is:
+- "knoben" (monthly decision if precipitation is snow or rain) or 
+- "raven" (daily derivation of snow amount using Dingman method and using ration of overall sum of snow and precipitation to derive "P as snow")
