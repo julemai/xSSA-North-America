@@ -741,16 +741,16 @@ if __name__ == '__main__':
         raise ValueError("Variable given is not available in Pickle!")
 
     if (ikey == 'Q'):
-        ppp = [4,5,7,15,17,18,23,24,25,26,28]
+        ppp = [4,5,7,15,17,18,23,24,25,26,28,30,33]
         print("sel parameters: ",["x_{"+str(ipp+1)+"}" for ipp in ppp])
-        perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][0:30])*100.
+        perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][0:35])*100.
         print("Overall sensitivity of sel parameters (w/o ri): ",perc,"%")
         perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel parameters (w/  ri): ",perc,"%")
     if (ikey == 'infiltration'):
-        ppp = [4,5,7,15,17,18,23,24,25,26,28]
+        ppp = [4,5,7,17,18,23,24,25,26,28,30,33]
         print("sel parameters: ",["x_{"+str(ipp+1)+"}" for ipp in ppp])
-        perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][0:30])*100.
+        perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][0:35])*100.
         print("Overall sensitivity of sel parameters (w/o ri): ",perc,"%")
         perc = np.sum(sobol_indexes['paras']['wsti'][ikey][ppp])/np.sum(sobol_indexes['paras']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel parameters (w/  ri): ",perc,"%")

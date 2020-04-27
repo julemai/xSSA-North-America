@@ -609,24 +609,22 @@ if __name__ == '__main__':
                                             for ioption_u in range(len(options_paras_raven[8])):
                                                 for ioption_v in range(len(options_paras_raven[9])):
                                                     for ioption_w in range(len(options_paras_raven[10])):
-                                                        for ioption_x in range(len(options_paras_raven[11])):
 
-                                                            npara_m = len(options_paras_raven[0][ioption_m])
-                                                            npara_n = len(options_paras_raven[1][ioption_n])
-                                                            npara_o = len(options_paras_raven[2][ioption_o])
-                                                            npara_p = len(options_paras_raven[3][ioption_p])
-                                                            npara_q = len(options_paras_raven[4][ioption_q])
-                                                            npara_r = len(options_paras_raven[5][ioption_r])
-                                                            npara_s = len(options_paras_raven[6][ioption_s])
-                                                            npara_t = len(options_paras_raven[7][ioption_t])
-                                                            npara_u = len(options_paras_raven[8][ioption_u])
-                                                            npara_v = len(options_paras_raven[9][ioption_v])
-                                                            npara_w = len(options_paras_raven[10][ioption_w])
-                                                            npara_x = len(options_paras_raven[11][ioption_x])
+                                                        npara_m = len(options_paras_raven[0][ioption_m])
+                                                        npara_n = len(options_paras_raven[1][ioption_n])
+                                                        npara_o = len(options_paras_raven[2][ioption_o])
+                                                        npara_p = len(options_paras_raven[3][ioption_p])
+                                                        npara_q = len(options_paras_raven[4][ioption_q])
+                                                        npara_r = len(options_paras_raven[5][ioption_r])
+                                                        npara_s = len(options_paras_raven[6][ioption_s])
+                                                        npara_t = len(options_paras_raven[7][ioption_t])
+                                                        npara_u = len(options_paras_raven[8][ioption_u])
+                                                        npara_v = len(options_paras_raven[9][ioption_v])
+                                                        npara_w = len(options_paras_raven[10][ioption_w])
 
-                                                            nnparas = npara_m + npara_n + npara_o + npara_p + npara_q + npara_r + npara_s + npara_t + npara_u + npara_v + npara_w + npara_x
+                                                        nnparas = npara_m + npara_n + npara_o + npara_p + npara_q + npara_r + npara_s + npara_t + npara_u + npara_v + npara_w
 
-                                                            model_runs += nsets * (nnparas+2)
+                                                        model_runs += nsets * (nnparas+2)
                                     
             print("Total number of model runs required: ",model_runs)
 
