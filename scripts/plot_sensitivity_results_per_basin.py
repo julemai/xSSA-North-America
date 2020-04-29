@@ -948,23 +948,23 @@ if __name__ == '__main__':
         raise ValueError("Variable given is not available in Pickle!")
 
     if (ikey == 'Q'):
-        ppp = [1,4,7]
-        print("sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
+        ppp = [1,4]
+        print("Surface:: sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
         perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel processes: ",perc,"%")
 
         ppp = [3,5,6]
-        print("sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
+        print("Deep:: sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
         perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel processes: ",perc,"%")
 
         ppp = [0,2,8]
-        print("sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
+        print("Soil:: sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
         perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel processes: ",perc,"%")
 
         ppp = [7,9,10]
-        print("sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
+        print("Input:: sel processes: ",[chr(ord('M')+ipp) for ipp in ppp])
         perc = np.sum(sobol_indexes['processes']['wsti'][ikey][ppp])/np.sum(sobol_indexes['processes']['wsti'][ikey][:])*100.
         print("Overall sensitivity of sel processes: ",perc,"%")
     
