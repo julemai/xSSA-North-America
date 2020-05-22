@@ -21,9 +21,17 @@ dprog=$(dirname ${prog})
 isdir=${PWD}
 pid=$$
 
-source  ~/projects/rpp-hwheater/julemai/xSSA-North-America/env-3.5/bin/activate
+# source  ~/projects/rpp-hwheater/julemai/xSSA-North-America/env-3.5/bin/activate
 
-doclimindex=1   # Derives Knoben climate indexes for all basins
+
+
+doclimindex=0   #                Derives Knoben climate indexes for all basins
+dofig1=0  	# 		 Plot sensitivities of all 9 processes on a map with basin shapes
+dofig3=0  	# 		 Plot correlations of climate indexes and properties with sensitivities of processes
+dofig4=0  	# 		 Plot map of climate indexes of all basins
+dofig5=1  	# On my Mac:     Plot comparison with mHM, Hype, and VIC
+
+
 
 if [[ ${doclimindex} -eq 1 ]] ; then
     # calculates climate indexes of all basins
@@ -33,10 +41,6 @@ if [[ ${doclimindex} -eq 1 ]] ; then
     python calculate_climate_indexes_knoben.py -i "${basins}" -o "../data_in/basin_metadata/basin_climate_index_knoben_snow-raven.txt"  -s "raven"
     python calculate_climate_indexes_knoben.py -i "${basins}" -o "../data_in/basin_metadata/basin_climate_index_knoben_snow-knoben.txt" -s "knoben"
 fi
-
-dofig1=0  # Plot sensitivities of all 9 processes on a map with basin shapes
-dofig3=1  # Plot correlations of climate indexes and properties with sensitivities of processes
-dofig4=0  # Plot map of climate indexes of all basins
 
 if [[ ${dofig1} -eq 1 ]] ; then
     # plot only basins already analysed
@@ -72,4 +76,15 @@ if [[ ${dofig4} -eq 1 ]] ; then
     basins=$( \ls -d ~/projects/rpp-hwheater/julemai/xSSA-North-America/data_out/* | rev | cut -d '/' -f 1 | rev )
     python figure_4.py -g figure_4_ -i "${basins}" -a "../data_in/basin_metadata/basin_climate_index_knoben_snow-raven.txt"
     mv figure_4_0001.png ../figures/figure_4.png
+fi
+
+
+if [[ ${dofig5} -eq 1 ]] ; then
+    #
+    # plot scatterplots and CDFs of model performance compared to HYPE, VIC, and mHM
+    #
+    python compare_performance_to_other_models.py -p compare_performance_to_other_models.pdf
+    pdfcrop compare_performance_to_other_models.pdf
+    mv compare_performance_to_other_models-crop.pdf ../figures/figure_5.pdf
+    rm compare_performance_to_other_models.pdf
 fi

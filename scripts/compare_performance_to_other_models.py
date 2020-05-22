@@ -20,7 +20,7 @@
 #
 # run with:
 #     source ../env-3.5/bin/activate
-#     run compare_performance_to_other_models.py -p test.pdf
+#     run compare_performance_to_other_models.py -p compare-hype-vic-mhm-blended.pdf
 
 from __future__ import print_function
 
@@ -178,7 +178,8 @@ if __name__ == '__main__':
     # -------------------------------------------------------------------------
     # Read list of basins that got calibrated
     # -------------------------------------------------------------------------
-    basin_ids = np.transpose(sread("basins_5yr.dat",skip=0))[0]
+    basin_ids_cal = np.transpose(sread("basins_calibration.dat",skip=0))[0]
+    basin_ids_val = np.transpose(sread("basins_validation.dat",skip=0))[0]
 
 
     # -------------------------------------------------------------------------
@@ -202,7 +203,7 @@ if __name__ == '__main__':
         dict_basin["lat_gauge_deg"] = meta_float[ibasin][6]
         dict_basin["lon_gauge_deg"] = meta_float[ibasin][7]
 
-        if meta_string[ibasin][0] in basin_ids:
+        if meta_string[ibasin][0] in basin_ids_cal:
             dict_metadata[meta_string[ibasin][0]] = dict_basin
 
 
@@ -224,13 +225,34 @@ if __name__ == '__main__':
         dict_basin["rmse"]          = meta_float[ibasin][1]
         dict_basin["kge"]           = meta_float[ibasin][2]
 
-        if meta_string[ibasin][0] in basin_ids:
+        if meta_string[ibasin][0] in basin_ids_cal:
             dict_calibration[meta_string[ibasin][0]] = dict_basin
 
     # -------------------------------------------------------------------------
-    # Read HYPE data
+    # Read basin validation results
     # -------------------------------------------------------------------------
-    print("Reading HYPE results ...")
+
+    # basin_id; basin_name; nse; rmse; kge
+    head = fread("../data_in/basin_metadata/basin_validation_results.txt",skip=1,separator=';',header=True)
+    meta_float, meta_string = fsread("../data_in/basin_metadata/basin_validation_results.txt",skip=1,separator=';',cname=["nse","rmse","kge"],sname=["basin_id","basin_name"])
+
+    meta_string = [ [ iitem.strip() for iitem in iline ] for iline in meta_string ]
+    
+    dict_validation = {}
+    for ibasin in range(len(meta_float)):
+        dict_basin = {}
+        dict_basin["name"]          = meta_string[ibasin][1]
+        dict_basin["nse"]           = meta_float[ibasin][0]
+        dict_basin["rmse"]          = meta_float[ibasin][1]
+        dict_basin["kge"]           = meta_float[ibasin][2]
+
+        if meta_string[ibasin][0] in basin_ids_val:
+            dict_validation[meta_string[ibasin][0]] = dict_basin
+
+    # -------------------------------------------------------------------------
+    # Read HYPE data (calibration only)
+    # -------------------------------------------------------------------------
+    print("Reading HYPE results (calibration) ...")
     
     import json
 
@@ -243,8 +265,8 @@ if __name__ == '__main__':
     # -------------------------------------------------------------------------
 
     cc = 0
-    merged_data_hype = {}
-    for basin_id in basin_ids:
+    merged_data_hype_cal = {}
+    for basin_id in basin_ids_cal:
 
         our_lon = dict_metadata[basin_id]['lon_gauge_deg']
         our_lat = dict_metadata[basin_id]['lat_gauge_deg']
@@ -276,44 +298,44 @@ if __name__ == '__main__':
                 dict_merged['lon_hype']  = hype_data["data"][idx_mindist]['x']
                 dict_merged['lat_hype']  = hype_data["data"][idx_mindist]['y']
                 dict_merged['area_hype'] = hype_data["data"][idx_mindist]['area'] / 10**6
-                dict_merged['kge_hype']  = hype_data["data"][idx_mindist]['KGE']
-                dict_merged['nse_hype']  = hype_data["data"][idx_mindist]['NSE']
+                dict_merged['kge_hype_cal']  = hype_data["data"][idx_mindist]['KGE']
+                dict_merged['nse_hype_cal']  = hype_data["data"][idx_mindist]['NSE']
                 #
                 # our data for blended model
                 dict_merged['name_our']  = dict_metadata[basin_id]['name']
                 dict_merged['lon_our']   = dict_metadata[basin_id]['lon_gauge_deg']
                 dict_merged['lat_our']   = dict_metadata[basin_id]['lat_gauge_deg']
                 dict_merged['area_our']  = dict_metadata[basin_id]['area_km2']
-                dict_merged['kge_our']   = dict_calibration[basin_id]['kge']
-                dict_merged['nse_our']   = dict_calibration[basin_id]['nse']
+                dict_merged['kge_our_cal']   = dict_calibration[basin_id]['kge']
+                dict_merged['nse_our_cal']   = dict_calibration[basin_id]['nse']
 
-                merged_data_hype[basin_id] = dict_merged
+                merged_data_hype_cal[basin_id] = dict_merged
 
     # our total number of stations:               3826
     # number of stations (no filter):             3826
     # number of stations (proximity filter):       996
     # number of stations (proximity+area filter):  818
 
-    nses_hype = np.array([ [merged_data_hype[ii]["nse_hype"], merged_data_hype[ii]["nse_our"]] for ii in merged_data_hype ])
-    kges_hype = np.array([ [merged_data_hype[ii]["kge_hype"], merged_data_hype[ii]["kge_our"]] for ii in merged_data_hype ])
+    nses_hype_cal = np.array([ [merged_data_hype_cal[ii]["nse_hype_cal"], merged_data_hype_cal[ii]["nse_our_cal"]] for ii in merged_data_hype_cal ])
+    kges_hype_cal = np.array([ [merged_data_hype_cal[ii]["kge_hype_cal"], merged_data_hype_cal[ii]["kge_our_cal"]] for ii in merged_data_hype_cal ])
 
 
     # -------------------------------------------------------------------------
-    # Read VIC data
+    # Read VIC data (calibration)
     # -------------------------------------------------------------------------
-    print("Reading VIC results ...")
+    print("Reading VIC results (calibration) ...")
     
     basins_vic = glob.glob("../data_supp/mizukami_WRR_2017/*/output/hcdn_calib_case04.txt")
     basins_vic = [ ifile.split('/')[3] for ifile in basins_vic ]
 
 
     # -------------------------------------------------------------------------
-    # Try to find station from our set in VIC set 
+    # Try to find station from our set in VIC set (calibration)
     # -------------------------------------------------------------------------
 
     cc = 0
-    merged_data_vic = {}
-    for basin_id in basin_ids:
+    merged_data_vic_cal = {}
+    for basin_id in basin_ids_cal:
 
         if basin_id in basins_vic:
 
@@ -325,42 +347,89 @@ if __name__ == '__main__':
             # vic simulated and observed streamflow
 
             # derive KGE and NSE
-            dict_merged['kge_vic']  = kge(vic_data[:,1],vic_data[:,0])
-            dict_merged['nse_vic']  = nse(vic_data[:,1],vic_data[:,0])
+            dict_merged['kge_vic_cal']  = kge(vic_data[:,1],vic_data[:,0])
+            dict_merged['nse_vic_cal']  = nse(vic_data[:,1],vic_data[:,0])
             #
             # our data for blended model
             dict_merged['name_our']  = dict_metadata[basin_id]['name']
             dict_merged['lon_our']   = dict_metadata[basin_id]['lon_gauge_deg']
             dict_merged['lat_our']   = dict_metadata[basin_id]['lat_gauge_deg']
             dict_merged['area_our']  = dict_metadata[basin_id]['area_km2']
-            dict_merged['kge_our']   = dict_calibration[basin_id]['kge']
-            dict_merged['nse_our']   = dict_calibration[basin_id]['nse']
+            dict_merged['kge_our_cal']   = dict_calibration[basin_id]['kge']
+            dict_merged['nse_our_cal']   = dict_calibration[basin_id]['nse']
 
-            merged_data_vic[basin_id] = dict_merged
+            merged_data_vic_cal[basin_id] = dict_merged
 
     # our total number of stations:                533
     # number of calibrated stations in our DB:     169
 
-    nses_vic = np.array([ [merged_data_vic[ii]["nse_vic"], merged_data_vic[ii]["nse_our"]] for ii in merged_data_vic ])
-    kges_vic = np.array([ [merged_data_vic[ii]["kge_vic"], merged_data_vic[ii]["kge_our"]] for ii in merged_data_vic ])
+    nses_vic_cal = np.array([ [merged_data_vic_cal[ii]["nse_vic_cal"], merged_data_vic_cal[ii]["nse_our_cal"]] for ii in merged_data_vic_cal ])
+    kges_vic_cal = np.array([ [merged_data_vic_cal[ii]["kge_vic_cal"], merged_data_vic_cal[ii]["kge_our_cal"]] for ii in merged_data_vic_cal ])
+
+
+    # -------------------------------------------------------------------------
+    # Read VIC data (validation)
+    # -------------------------------------------------------------------------
+    print("Reading VIC results (validation) ...")
+    
+    basins_vic = glob.glob("../data_supp/mizukami_WRR_2017/*/output/hcdn_vali_case04.txt")
+    basins_vic = [ ifile.split('/')[3] for ifile in basins_vic ]
+
+
+    # -------------------------------------------------------------------------
+    # Try to find station from our set in VIC set (validation)
+    # -------------------------------------------------------------------------
+
+    cc = 0
+    merged_data_vic_val = {}
+    for basin_id in basin_ids_val:
+
+        if basin_id in basins_vic:
+
+            cc += 1
+            vic_data = fread("../data_supp/mizukami_WRR_2017/"+basin_id+"/output/hcdn_vali_case04.txt",skip=0)
+
+            dict_merged = {}
+            #
+            # vic simulated and observed streamflow
+
+            # derive KGE and NSE
+            dict_merged['kge_vic_val']  = kge(vic_data[:,1],vic_data[:,0])
+            dict_merged['nse_vic_val']  = nse(vic_data[:,1],vic_data[:,0])
+            #
+            # our data for blended model
+            dict_merged['name_our']  = dict_metadata[basin_id]['name']
+            dict_merged['lon_our']   = dict_metadata[basin_id]['lon_gauge_deg']
+            dict_merged['lat_our']   = dict_metadata[basin_id]['lat_gauge_deg']
+            dict_merged['area_our']  = dict_metadata[basin_id]['area_km2']
+            dict_merged['kge_our_val']   = dict_validation[basin_id]['kge']
+            dict_merged['nse_our_val']   = dict_validation[basin_id]['nse']
+
+            merged_data_vic_val[basin_id] = dict_merged
+
+    # our total number of stations:                533
+    # number of calibrated stations in our DB:     169
+
+    nses_vic_val = np.array([ [merged_data_vic_val[ii]["nse_vic_val"], merged_data_vic_val[ii]["nse_our_val"]] for ii in merged_data_vic_val ])
+    kges_vic_val = np.array([ [merged_data_vic_val[ii]["kge_vic_val"], merged_data_vic_val[ii]["kge_our_val"]] for ii in merged_data_vic_val ])
     
 
     # -------------------------------------------------------------------------
-    # Read mHM data
+    # Read mHM data (calibration)
     # -------------------------------------------------------------------------
-    print("Reading mHM results ...")
+    print("Reading mHM results (calibration) ...")
     
     basins_mhm = glob.glob("../data_supp/rakovec_JGRA_2019/*/calib_001/output/daily_discharge.out")
     basins_mhm = [ ifile.split('/')[3] for ifile in basins_mhm ]
 
 
     # -------------------------------------------------------------------------
-    # Try to find station from our set in mHM set 
+    # Try to find station from our set in mHM set (calibration)
     # -------------------------------------------------------------------------
 
     cc = 0
-    merged_data_mhm = {}
-    for basin_id in basin_ids:
+    merged_data_mhm_cal = {}
+    for basin_id in basin_ids_cal:
 
         if basin_id in basins_mhm:
 
@@ -372,24 +441,71 @@ if __name__ == '__main__':
             # mHM simulated and observed streamflow
 
             # derive KGE and NSE
-            dict_merged['kge_mhm']  = kge(mhm_data[:,4],mhm_data[:,5])
-            dict_merged['nse_mhm']  = nse(mhm_data[:,4],mhm_data[:,5])
+            dict_merged['kge_mhm_cal']  = kge(mhm_data[:,4],mhm_data[:,5])
+            dict_merged['nse_mhm_cal']  = nse(mhm_data[:,4],mhm_data[:,5])
             #
             # our data for blended model
             dict_merged['name_our']  = dict_metadata[basin_id]['name']
             dict_merged['lon_our']   = dict_metadata[basin_id]['lon_gauge_deg']
             dict_merged['lat_our']   = dict_metadata[basin_id]['lat_gauge_deg']
             dict_merged['area_our']  = dict_metadata[basin_id]['area_km2']
-            dict_merged['kge_our']   = dict_calibration[basin_id]['kge']
-            dict_merged['nse_our']   = dict_calibration[basin_id]['nse']
+            dict_merged['kge_our_cal']   = dict_calibration[basin_id]['kge']
+            dict_merged['nse_our_cal']   = dict_calibration[basin_id]['nse']
 
-            merged_data_mhm[basin_id] = dict_merged
+            merged_data_mhm_cal[basin_id] = dict_merged
 
     # our total number of stations:                492
     # number of calibrated stations in our DB:     162
 
-    nses_mhm = np.array([ [merged_data_mhm[ii]["nse_mhm"], merged_data_mhm[ii]["nse_our"]] for ii in merged_data_mhm ])
-    kges_mhm = np.array([ [merged_data_mhm[ii]["kge_mhm"], merged_data_mhm[ii]["kge_our"]] for ii in merged_data_mhm ])
+    nses_mhm_cal = np.array([ [merged_data_mhm_cal[ii]["nse_mhm_cal"], merged_data_mhm_cal[ii]["nse_our_cal"]] for ii in merged_data_mhm_cal ])
+    kges_mhm_cal = np.array([ [merged_data_mhm_cal[ii]["kge_mhm_cal"], merged_data_mhm_cal[ii]["kge_our_cal"]] for ii in merged_data_mhm_cal ])
+
+    
+    # -------------------------------------------------------------------------
+    # Read mHM data (validation)
+    # -------------------------------------------------------------------------
+    print("Reading mHM results (validation) ...")
+    
+    basins_mhm = glob.glob("../data_supp/rakovec_JGRA_2019/*/calib_001/output/daily_discharge.out")
+    basins_mhm = [ ifile.split('/')[3] for ifile in basins_mhm ]
+
+
+    # -------------------------------------------------------------------------
+    # Try to find station from our set in mHM set (validation)
+    # -------------------------------------------------------------------------
+
+    cc = 0
+    merged_data_mhm_val = {}
+    for basin_id in basin_ids_val:
+
+        if basin_id in basins_mhm:
+
+            cc += 1
+            mhm_data = fread("../data_supp/rakovec_JGRA_2019/"+basin_id+"/calib_001/output/daily_discharge.out",skip=1)
+
+            dict_merged = {}
+            #
+            # mHM simulated and observed streamflow
+
+            # derive KGE and NSE
+            dict_merged['kge_mhm_val']  = kge(mhm_data[:,4],mhm_data[:,5])
+            dict_merged['nse_mhm_val']  = nse(mhm_data[:,4],mhm_data[:,5])
+            #
+            # our data for blended model
+            dict_merged['name_our']  = dict_metadata[basin_id]['name']
+            dict_merged['lon_our']   = dict_metadata[basin_id]['lon_gauge_deg']
+            dict_merged['lat_our']   = dict_metadata[basin_id]['lat_gauge_deg']
+            dict_merged['area_our']  = dict_metadata[basin_id]['area_km2']
+            dict_merged['kge_our_val']   = dict_validation[basin_id]['kge']
+            dict_merged['nse_our_val']   = dict_validation[basin_id]['nse']
+
+            merged_data_mhm_val[basin_id] = dict_merged
+
+    # our total number of stations:                492
+    # number of calibrated stations in our DB:     162
+
+    nses_mhm_val = np.array([ [merged_data_mhm_val[ii]["nse_mhm_val"], merged_data_mhm_val[ii]["nse_our_val"]] for ii in merged_data_mhm_val ])
+    kges_mhm_val = np.array([ [merged_data_mhm_val[ii]["kge_mhm_val"], merged_data_mhm_val[ii]["kge_our_val"]] for ii in merged_data_mhm_val ])
         
 # -------------------------------------------------------------------------
 # Customize plots
@@ -404,12 +520,12 @@ else:
     outtype = 'pdf'
     
 # Main plot
-nrow        = 5           # # of rows of subplots per figure
-ncol        = 2           # # of columns of subplots per figure
-hspace      = 0.1         # x-space between subplots
-vspace      = 0.08        # y-space between subplots
+nrow        = 6           # # of rows of subplots per figure
+ncol        = 4           # # of columns of subplots per figure
+hspace      = 0.07         # x-space between subplots
+vspace      = 0.06        # y-space between subplots
 right       = 0.9         # right space on page
-textsize    = 10           # standard text size
+textsize    = 8           # standard text size
 dxabc       = 1.0         # % of (max-min) shift to the right from left y-axis for a,b,c,... labels
 # dyabc       = -13       # % of (max-min) shift up from lower x-axis for a,b,c,... labels
 dyabc       = 0.0         # % of (max-min) shift up from lower x-axis for a,b,c,... labels
@@ -436,9 +552,9 @@ hatches     = [None, None, None, None, None, '//']
 
 # Legend
 llxbbox     = 0.5         # x-anchor legend bounding box
-llybbox     = 0.90         # y-anchor legend bounding box
+llybbox     = 0.93         # y-anchor legend bounding box
 llrspace    = 0.          # spacing between rows in legend
-llcspace    = 1.0         # spacing between columns in legend
+llcspace    = 0.2         # spacing between columns in legend
 llhtextpad  = 0.4         # the pad between the legend handle and text
 llhlength   = 1.5         # the length of the legend handles
 frameon     = False       # if True, draw a frame around the legend. If None, use rc
@@ -640,11 +756,11 @@ else:
 
 # sort basins starting with largest
 areas = []
-for ibasin_id,basin_id in enumerate(basin_ids):
+for ibasin_id,basin_id in enumerate(basin_ids_cal):
     areas.append(dict_metadata[basin_id]["area_km2"])
 areas = np.array(areas)
 idx_areas = np.argsort(areas)[::-1]
-basin_ids = np.array(basin_ids)[idx_areas]
+basin_ids_cal = np.array(basin_ids_cal)[idx_areas]
 
 
 
@@ -661,18 +777,18 @@ print('Plot - Fig ', ifig)
 fig = plt.figure(ifig)
 
 # -----------------------------------------
-# Scatterplot HYPE vs blended
+# Scatterplot HYPE vs blended (calibration)
 # -----------------------------------------
 iplot += 1
 
 sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
 
-sub.plot(nses_hype[:,1],nses_hype[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[2],  markerfacecolor='w',  label=str2tex('NSE'))
-sub.plot(kges_hype[:,1],kges_hype[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-3], markerfacecolor='w', label=str2tex('KGE'))
+sub.plot(nses_hype_cal[:,1],nses_hype_cal[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[0],  markerfacecolor='w',  label=str2tex('NSE$_\mathrm{cal}$'))
+sub.plot(kges_hype_cal[:,1],kges_hype_cal[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-1], markerfacecolor='w', label=str2tex('KGE$_\mathrm{cal}$'))
 sub.plot([-1.0,1.0],[-1.0,1.0],linewidth=0.5*lwidth, linestyle='--',color='k')
 
 # axis lables
-sub.set_xlabel(str2tex('Blended Raven (Mai et al., 2020)',usetex=usetex), color='black')
+# sub.set_xlabel(str2tex('Blended Raven\n(Mai et al., 2020)',usetex=usetex), color='black')
 sub.set_ylabel(str2tex('HYPE\n(Arheimer et al., 2020)',usetex=usetex), color='black')
 
 
@@ -680,8 +796,15 @@ sub.set_ylabel(str2tex('HYPE\n(Arheimer et al., 2020)',usetex=usetex), color='bl
 sub.set_xlim([-0.0,1.0])
 sub.set_ylim([-1.0,1.0])
 
+# add label with current number of basins
+sub.text(0.02,0.98,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_hype_cal))+"$",usetex=usetex),rotation=0,horizontalalignment="left", verticalalignment="top", transform=sub.transAxes)
+
+# add label with calibration/validation tag
+# sub.text(0.5,0.95,str2tex("Calibration",usetex=usetex),verticalalignment="top",horizontalalignment="center",transform=sub.transAxes)
+
 # legend
 ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
                 labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
                 loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
                 #fontsize = 'x-small')
@@ -690,97 +813,71 @@ ll = sub.legend(frameon=frameon, ncol=2,
 # -----------------------------------------
 # KDE HYPE vs blended
 # -----------------------------------------
-iplot += 1
+iplot += 2
 
 sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
 
-# from scipy.stats import gaussian_kde
-
-# def kde_scipy(x, x_grid, **kwargs):
-#         """Kernel Density Estimation with Scipy"""
-#         kde = gaussian_kde(x, bw_method='silverman', **kwargs)
-#         return kde.evaluate(x_grid)
-
-# min_z = np.min(nses_hype)
-# max_z = np.max(nses_hype)
-# z_grid = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
-
-# kde_nse_hype    = kde_scipy(nses_hype[:,0], z_grid)
-# kde_nse_raven   = kde_scipy(nses_hype[:,1], z_grid)
-
-# min_z = np.min(kges_hype)
-# max_z = np.max(kges_hype)
-# z_grid = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
-
-# kde_kge_hype    = kde_scipy(kges_hype[:,0], z_grid)
-# kde_kge_raven   = kde_scipy(kges_hype[:,1], z_grid)
-
-# linez1    = sub.plot(z_grid, np.cumsum(kde_nse_hype)/np.sum(kde_nse_hype),   color=cc[2],  linestyle="--", label=str2tex("NSE (HYPE)"))
-# linez2    = sub.plot(z_grid, np.cumsum(kde_nse_raven)/np.sum(kde_nse_raven), color=cc[2],  linestyle="-",  label=str2tex("NSE (Raven)"))
-# linez3    = sub.plot(z_grid, np.cumsum(kde_kge_hype)/np.sum(kde_kge_hype),   color=cc[-3], linestyle="--", label=str2tex("KGE (HYPE)"))
-# linez4    = sub.plot(z_grid, np.cumsum(kde_kge_raven)/np.sum(kde_kge_raven), color=cc[-3], linestyle="-",  label=str2tex("KGE (Raven)"))
-
-
 from   statsmodels.distributions.empirical_distribution import ECDF
 
-ecdf_nse_hype  = ECDF(nses_hype[:,0])
-min_z          = max(-10.0,np.min(nses_hype[:,0]))
-max_z          = np.max(nses_hype[:,0])
+ecdf_nse_hype  = ECDF(nses_hype_cal[:,0])
+min_z          = max(-10.0,np.min(nses_hype_cal[:,0]))
+max_z          = np.max(nses_hype_cal[:,0])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 nse_hype_cdf   = ecdf_nse_hype(z_grid)
-linez1         = sub.plot(z_grid, nse_hype_cdf,  color=cc[2], linewidth=lwidth, linestyle="--", label=str2tex("NSE (HYPE)"))
+linez1         = sub.plot(z_grid, nse_hype_cdf,  color=cc[0], linewidth=lwidth, linestyle="--", label=str2tex("NSE$_\mathrm{cal}^\mathrm{HYPE}$"))
 
-ecdf_nse_raven = ECDF(nses_hype[:,1])
-min_z          = max(-10.0,np.min(nses_hype[:,1]))
-max_z          = np.max(nses_hype[:,1])
+ecdf_nse_raven = ECDF(nses_hype_cal[:,1])
+min_z          = max(-10.0,np.min(nses_hype_cal[:,1]))
+max_z          = np.max(nses_hype_cal[:,1])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 nse_raven_cdf  = ecdf_nse_raven(z_grid)
-linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[2], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$^*$ (Raven)"))
+linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[0], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$_\mathrm{cal}^\mathrm{Raven}$"))
 
-ecdf_kge_hype  = ECDF(kges_hype[:,0])
-min_z          = max(-10.0,np.min(kges_hype[:,0]))
-max_z          = np.max(kges_hype[:,0])
+ecdf_kge_hype  = ECDF(kges_hype_cal[:,0])
+min_z          = max(-10.0,np.min(kges_hype_cal[:,0]))
+max_z          = np.max(kges_hype_cal[:,0])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 kge_hype_cdf   = ecdf_kge_hype(z_grid)
-linez3         = sub.plot(z_grid, kge_hype_cdf,  color=cc[-3], linewidth=lwidth, linestyle="--", label=str2tex("KGE$^*$ (HYPE)"))
+linez3         = sub.plot(z_grid, kge_hype_cdf,  color=cc[-1], linewidth=lwidth, linestyle="--", label=str2tex("KGE$_\mathrm{cal}^\mathrm{HYPE}$"))
 
-ecdf_kge_raven = ECDF(kges_hype[:,1])
-min_z          = max(-10.0,np.min(kges_hype[:,1]))
-max_z          = np.max(kges_hype[:,1])
+ecdf_kge_raven = ECDF(kges_hype_cal[:,1])
+min_z          = max(-10.0,np.min(kges_hype_cal[:,1]))
+max_z          = np.max(kges_hype_cal[:,1])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 kge_raven_cdf  = ecdf_kge_raven(z_grid)
-linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-3], linewidth=lwidth, linestyle="-",  label=str2tex("KGE (Raven)"))
+linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-1], linewidth=lwidth, linestyle="-",  label=str2tex("KGE$_\mathrm{cal}^\mathrm{Raven}$"))
 
 # limit plot range
 sub.set_xlim([-0.2,1.0])
 # sub.set_ylim([-0.0,1.0])
 
 # axis lables
-sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
+# sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
 sub.set_ylabel(str2tex('CDF [-]',usetex=usetex), color='black')
 
 # add label with current number of basins
-sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_hype))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
+# sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_hype_cal))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
 
 # legend
 ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
                 labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
                 loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
                 #fontsize = 'x-small')
 
 # -----------------------------------------
-# Scatterplot VIC vs blended
+# Scatterplot VIC vs blended (calibration)
 # -----------------------------------------
-iplot += 1
+iplot += 2
 
 sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
 
-sub.plot(nses_vic[:,1],nses_vic[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[2],  markerfacecolor='w',  label=str2tex('NSE'))
-sub.plot(kges_vic[:,1],kges_vic[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-3], markerfacecolor='w', label=str2tex('KGE'))
+sub.plot(nses_vic_cal[:,1],nses_vic_cal[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[0],  markerfacecolor='w',  label=str2tex('NSE$_\mathrm{cal}$'))
+sub.plot(kges_vic_cal[:,1],kges_vic_cal[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-1], markerfacecolor='w', label=str2tex('KGE$_\mathrm{cal}$'))
 sub.plot([-1.0,1.0],[-1.0,1.0],linewidth=0.5*lwidth, linestyle='--',color='k')
 
 # axis lables
-sub.set_xlabel(str2tex('Blended Raven (Mai et al., 2020)',usetex=usetex), color='black')
+# sub.set_xlabel(str2tex('Blended Raven\n(Mai et al., 2020)',usetex=usetex), color='black')
 sub.set_ylabel(str2tex('VIC\n(Rakovec et al., 2019)',usetex=usetex), color='black')
 
 
@@ -788,112 +885,177 @@ sub.set_ylabel(str2tex('VIC\n(Rakovec et al., 2019)',usetex=usetex), color='blac
 sub.set_xlim([-0.0,1.0])
 sub.set_ylim([-1.0,1.0])
 
-
 # add label with current number of basins
-# sub.text(0.95,0.05,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_vic))+"$",usetex=usetex),horizontalalignment="right",transform=sub.transAxes)
+sub.text(0.02,0.02,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_vic_cal))+"$",usetex=usetex),rotation=0,horizontalalignment="left", verticalalignment="bottom", transform=sub.transAxes)
+
+# add label with calibration/validation tag
+# sub.text(0.5,0.95,str2tex("Calibration",usetex=usetex),verticalalignment="top",horizontalalignment="center",transform=sub.transAxes)
 
 # legend
 ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
                 labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
                 loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
                 #fontsize = 'x-small')
 
 
 # -----------------------------------------
-# KDE VIC vs blended
+# Scatterplot VIC vs blended (validation)
 # -----------------------------------------
 iplot += 1
 
 sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
 
-# from scipy.stats import gaussian_kde
+sub.plot(nses_vic_val[:,1],nses_vic_val[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[2],  markerfacecolor='w',  label=str2tex('NSE$_\mathrm{val}$'))
+sub.plot(kges_vic_val[:,1],kges_vic_val[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-3], markerfacecolor='w', label=str2tex('KGE$_\mathrm{val}$'))
+sub.plot([-1.0,1.0],[-1.0,1.0],linewidth=0.5*lwidth, linestyle='--',color='k')
 
-# def kde_scipy(x, x_grid, **kwargs):
-#         """Kernel Density Estimation with Scipy"""
-#         kde = gaussian_kde(x, bw_method='silverman', **kwargs)
-#         return kde.evaluate(x_grid)
+# axis lables
+# sub.set_xlabel(str2tex('Blended Raven\n(Mai et al., 2020)',usetex=usetex), color='black')
+# sub.set_ylabel(str2tex('VIC\n(Rakovec et al., 2019)',usetex=usetex), color='black')
 
-# min_z = np.min(nses_vic)
-# max_z = np.max(nses_vic)
-# z_grid = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 
-# kde_nse_vic    = kde_scipy(nses_vic[:,0], z_grid)
-# kde_nse_raven   = kde_scipy(nses_vic[:,1], z_grid)
+# limit plot range
+sub.set_xlim([-0.0,1.0])
+sub.set_ylim([-1.0,1.0])
 
-# min_z = np.min(kges_vic)
-# max_z = np.max(kges_vic)
-# z_grid = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+# add label with current number of basins
+sub.text(0.02,0.02,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_vic_val))+"$",usetex=usetex),rotation=0,horizontalalignment="left", verticalalignment="bottom", transform=sub.transAxes)
 
-# kde_kge_vic    = kde_scipy(kges_vic[:,0], z_grid)
-# kde_kge_raven   = kde_scipy(kges_vic[:,1], z_grid)
+# add label with calibration/validation tag
+# sub.text(0.5,0.95,str2tex("Validation",usetex=usetex),verticalalignment="top",horizontalalignment="center",transform=sub.transAxes)
 
-# linez1    = sub.plot(z_grid, np.cumsum(kde_nse_vic)/np.sum(kde_nse_vic),   color=cc[2],  linestyle="--", label=str2tex("NSE (VIC)"))
-# linez2    = sub.plot(z_grid, np.cumsum(kde_nse_raven)/np.sum(kde_nse_raven), color=cc[2],  linestyle="-",  label=str2tex("NSE (Raven)"))
-# linez3    = sub.plot(z_grid, np.cumsum(kde_kge_vic)/np.sum(kde_kge_vic),   color=cc[-3], linestyle="--", label=str2tex("KGE (VIC)"))
-# linez4    = sub.plot(z_grid, np.cumsum(kde_kge_raven)/np.sum(kde_kge_raven), color=cc[-3], linestyle="-",  label=str2tex("KGE (Raven)"))
+# legend
+ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
+                labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
+                loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
+                #fontsize = 'x-small')
 
+
+# -----------------------------------------
+# KDE VIC vs blended (calibration)
+# -----------------------------------------
+iplot += 1
+
+sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
 
 from   statsmodels.distributions.empirical_distribution import ECDF
 
-ecdf_nse_vic  = ECDF(nses_vic[:,0])
-min_z          = max(-10.0,np.min(nses_vic[:,0]))
-max_z          = np.max(nses_vic[:,0])
+ecdf_nse_vic  = ECDF(nses_vic_cal[:,0])
+min_z          = max(-10.0,np.min(nses_vic_cal[:,0]))
+max_z          = np.max(nses_vic_cal[:,0])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 nse_vic_cdf   = ecdf_nse_vic(z_grid)
-linez1         = sub.plot(z_grid, nse_vic_cdf,  color=cc[2], linewidth=lwidth, linestyle="--", label=str2tex("NSE$^*$ (VIC)"))
+linez1         = sub.plot(z_grid, nse_vic_cdf,  color=cc[0], linewidth=lwidth, linestyle="--", label=str2tex("NSE$_\mathrm{cal}^\mathrm{VIC}$"))
 
-ecdf_nse_raven = ECDF(nses_vic[:,1])
-min_z          = max(-10.0,np.min(nses_vic[:,1]))
-max_z          = np.max(nses_vic[:,1])
+ecdf_nse_raven = ECDF(nses_vic_cal[:,1])
+min_z          = max(-10.0,np.min(nses_vic_cal[:,1]))
+max_z          = np.max(nses_vic_cal[:,1])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 nse_raven_cdf  = ecdf_nse_raven(z_grid)
-linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[2], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$^*$ (Raven)"))
+linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[0], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$_\mathrm{cal}^\mathrm{Raven}$"))
 
-ecdf_kge_vic  = ECDF(kges_vic[:,0])
-min_z          = max(-10.0,np.min(kges_vic[:,0]))
-max_z          = np.max(kges_vic[:,0])
+ecdf_kge_vic  = ECDF(kges_vic_cal[:,0])
+min_z          = max(-10.0,np.min(kges_vic_cal[:,0]))
+max_z          = np.max(kges_vic_cal[:,0])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 kge_vic_cdf   = ecdf_kge_vic(z_grid)
-linez3         = sub.plot(z_grid, kge_vic_cdf,  color=cc[-3], linewidth=lwidth, linestyle="--", label=str2tex("KGE (VIC)"))
+linez3         = sub.plot(z_grid, kge_vic_cdf,  color=cc[-1], linewidth=lwidth, linestyle="--", label=str2tex("KGE$_\mathrm{cal}^\mathrm{VIC}$"))
 
-ecdf_kge_raven = ECDF(kges_vic[:,1])
-min_z          = max(-10.0,np.min(kges_vic[:,1]))
-max_z          = np.max(kges_vic[:,1])
+ecdf_kge_raven = ECDF(kges_vic_cal[:,1])
+min_z          = max(-10.0,np.min(kges_vic_cal[:,1]))
+max_z          = np.max(kges_vic_cal[:,1])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 kge_raven_cdf  = ecdf_kge_raven(z_grid)
-linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-3], linewidth=lwidth, linestyle="-",  label=str2tex("KGE (Raven)"))
+linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-1], linewidth=lwidth, linestyle="-",  label=str2tex("KGE$_\mathrm{cal}^\mathrm{Raven}$"))
 
 # limit plot range
 sub.set_xlim([-0.2,1.0])
 # sub.set_ylim([-0.0,1.0])
 
 # axis lables
-sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
+#sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
 sub.set_ylabel(str2tex('CDF [-]',usetex=usetex), color='black')
 
 # add label with current number of basins
-sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_vic))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
+# sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_vic_cal))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
 
 # legend
 ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
                 labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
                 loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
                 #fontsize = 'x-small')
 
-
 # -----------------------------------------
-# Scatterplot mHM vs blended
+# KDE VIC vs blended (validation)
 # -----------------------------------------
 iplot += 1
 
 sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
 
-sub.plot(nses_mhm[:,1],nses_mhm[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[2],  markerfacecolor='w',  label=str2tex('NSE'))
-sub.plot(kges_mhm[:,1],kges_mhm[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-3], markerfacecolor='w', label=str2tex('KGE'))
+from   statsmodels.distributions.empirical_distribution import ECDF
+
+ecdf_nse_vic  = ECDF(nses_vic_val[:,0])
+min_z          = max(-10.0,np.min(nses_vic_val[:,0]))
+max_z          = np.max(nses_vic_val[:,0])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+nse_vic_cdf   = ecdf_nse_vic(z_grid)
+linez1         = sub.plot(z_grid, nse_vic_cdf,  color=cc[2], linewidth=lwidth, linestyle="--", label=str2tex("NSE$_\mathrm{val}^\mathrm{VIC}$"))
+
+ecdf_nse_raven = ECDF(nses_vic_val[:,1])
+min_z          = max(-10.0,np.min(nses_vic_val[:,1]))
+max_z          = np.max(nses_vic_val[:,1])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+nse_raven_cdf  = ecdf_nse_raven(z_grid)
+linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[2], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$_\mathrm{val}^\mathrm{Raven}$"))
+
+ecdf_kge_vic  = ECDF(kges_vic_val[:,0])
+min_z          = max(-10.0,np.min(kges_vic_val[:,0]))
+max_z          = np.max(kges_vic_val[:,0])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+kge_vic_cdf   = ecdf_kge_vic(z_grid)
+linez3         = sub.plot(z_grid, kge_vic_cdf,  color=cc[-3], linewidth=lwidth, linestyle="--", label=str2tex("KGE$_\mathrm{val}^\mathrm{VIC}$"))
+
+ecdf_kge_raven = ECDF(kges_vic_val[:,1])
+min_z          = max(-10.0,np.min(kges_vic_val[:,1]))
+max_z          = np.max(kges_vic_val[:,1])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+kge_raven_cdf  = ecdf_kge_raven(z_grid)
+linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-3], linewidth=lwidth, linestyle="-",  label=str2tex("KGE$_\mathrm{val}^\mathrm{Raven}$"))
+
+# limit plot range
+sub.set_xlim([-0.2,1.0])
+# sub.set_ylim([-0.0,1.0])
+
+# axis lables
+# sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
+# sub.set_ylabel(str2tex('CDF [-]',usetex=usetex), color='black')
+
+# add label with current number of basins
+# sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_vic_cal))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
+
+# legend
+ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
+                labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
+                loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
+                #fontsize = 'x-small')
+                
+# -----------------------------------------
+# Scatterplot mHM vs blended (calibration)
+# -----------------------------------------
+iplot += 1
+
+sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
+
+sub.plot(nses_mhm_cal[:,1],nses_mhm_cal[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[0],  markerfacecolor='w',  label=str2tex('NSE$_\mathrm{cal}$'))
+sub.plot(kges_mhm_cal[:,1],kges_mhm_cal[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-1], markerfacecolor='w', label=str2tex('KGE$_\mathrm{cal}$'))
 sub.plot([-1.0,1.0],[-1.0,1.0],linewidth=0.5*lwidth, linestyle='--',color='k')
 
 # axis lables
-sub.set_xlabel(str2tex('Blended Raven (Mai et al., 2020)',usetex=usetex), color='black')
+sub.set_xlabel(str2tex('Blended Raven\n(Mai et al., 2020)',usetex=usetex), color='black')
 sub.set_ylabel(str2tex('mHM\n(Rakovec et al., 2019)',usetex=usetex), color='black')
 
 
@@ -901,80 +1063,89 @@ sub.set_ylabel(str2tex('mHM\n(Rakovec et al., 2019)',usetex=usetex), color='blac
 sub.set_xlim([-0.0,1.0])
 sub.set_ylim([-1.0,1.0])
 
-
 # add label with current number of basins
-# sub.text(0.95,0.05,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_mhm))+"$",usetex=usetex),horizontalalignment="right",transform=sub.transAxes)
+sub.text(0.02,0.02,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_mhm_cal))+"$",usetex=usetex),rotation=0,horizontalalignment="left", verticalalignment="bottom", transform=sub.transAxes)
+
+# add label with calibration/validation tag
+# sub.text(0.5,0.95,str2tex("Calibration",usetex=usetex),verticalalignment="top",horizontalalignment="center",transform=sub.transAxes)
 
 # legend
 ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
+                labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
+                loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
+                #fontsize = 'x-small')
+
+# -----------------------------------------
+# Scatterplot mHM vs blended (validation)
+# -----------------------------------------
+iplot += 1
+
+sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
+
+sub.plot(nses_mhm_val[:,1],nses_mhm_val[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[2],  markerfacecolor='w',  label=str2tex('NSE$_\mathrm{val}$'))
+sub.plot(kges_mhm_val[:,1],kges_mhm_val[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-3], markerfacecolor='w', label=str2tex('KGE$_\mathrm{val}$'))
+sub.plot([-1.0,1.0],[-1.0,1.0],linewidth=0.5*lwidth, linestyle='--',color='k')
+
+# axis lables
+sub.set_xlabel(str2tex('Blended Raven\n(Mai et al., 2020)',usetex=usetex), color='black')
+# sub.set_ylabel(str2tex('mHM\n(Rakovec et al., 2019)',usetex=usetex), color='black')
+
+
+# limit plot range
+sub.set_xlim([-0.0,1.0])
+sub.set_ylim([-1.0,1.0])
+
+# add label with current number of basins
+sub.text(0.02,0.02,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_mhm_val))+"$",usetex=usetex),rotation=0,horizontalalignment="left", verticalalignment="bottom", transform=sub.transAxes)
+
+# add label with calibration/validation tag
+# sub.text(0.5,0.95,str2tex("Validation",usetex=usetex),verticalalignment="top",horizontalalignment="center",transform=sub.transAxes)
+
+# legend
+ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
                 labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
                 loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
                 #fontsize = 'x-small')
 
 
 # -----------------------------------------
-# KDE mHM vs blended
+# KDE mHM vs blended (calibration)
 # -----------------------------------------
 iplot += 1
 
 sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
 
-# from scipy.stats import gaussian_kde
-
-# def kde_scipy(x, x_grid, **kwargs):
-#         """Kernel Density Estimation with Scipy"""
-#         kde = gaussian_kde(x, bw_method='silverman', **kwargs)
-#         return kde.evaluate(x_grid)
-
-# min_z = np.min(nses_mhm)
-# max_z = np.max(nses_mhm)
-# z_grid = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
-
-# kde_nse_mhm    = kde_scipy(nses_mhm[:,0], z_grid)
-# kde_nse_raven   = kde_scipy(nses_mhm[:,1], z_grid)
-
-# min_z = np.min(kges_mhm)
-# max_z = np.max(kges_mhm)
-# z_grid = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
-
-# kde_kge_mhm    = kde_scipy(kges_mhm[:,0], z_grid)
-# kde_kge_raven   = kde_scipy(kges_mhm[:,1], z_grid)
-
-# linez1    = sub.plot(z_grid, np.cumsum(kde_nse_mhm)/np.sum(kde_nse_mhm),   color=cc[2],  linestyle="--", label=str2tex("NSE (mHM)"))
-# linez2    = sub.plot(z_grid, np.cumsum(kde_nse_raven)/np.sum(kde_nse_raven), color=cc[2],  linestyle="-",  label=str2tex("NSE (Raven)"))
-# linez3    = sub.plot(z_grid, np.cumsum(kde_kge_mhm)/np.sum(kde_kge_mhm),   color=cc[-3], linestyle="--", label=str2tex("KGE (mHM)"))
-# linez4    = sub.plot(z_grid, np.cumsum(kde_kge_raven)/np.sum(kde_kge_raven), color=cc[-3], linestyle="-",  label=str2tex("KGE (Raven)"))
-
-
 from   statsmodels.distributions.empirical_distribution import ECDF
 
-ecdf_nse_mhm  = ECDF(nses_mhm[:,0])
-min_z          = max(-10.0,np.min(nses_mhm[:,0]))
-max_z          = np.max(nses_mhm[:,0])
+ecdf_nse_mhm  = ECDF(nses_mhm_cal[:,0])
+min_z          = max(-10.0,np.min(nses_mhm_cal[:,0]))
+max_z          = np.max(nses_mhm_cal[:,0])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 nse_mhm_cdf   = ecdf_nse_mhm(z_grid)
-linez1         = sub.plot(z_grid, nse_mhm_cdf,  color=cc[2], linewidth=lwidth, linestyle="--", label=str2tex("NSE$^*$ (mHM)"))
+linez1         = sub.plot(z_grid, nse_mhm_cdf,  color=cc[0], linewidth=lwidth, linestyle="--", label=str2tex("NSE$_\mathrm{cal}^\mathrm{mHM}$"))
 
-ecdf_nse_raven = ECDF(nses_mhm[:,1])
-min_z          = max(-10.0,np.min(nses_mhm[:,1]))
-max_z          = np.max(nses_mhm[:,1])
+ecdf_nse_raven = ECDF(nses_mhm_cal[:,1])
+min_z          = max(-10.0,np.min(nses_mhm_cal[:,1]))
+max_z          = np.max(nses_mhm_cal[:,1])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 nse_raven_cdf  = ecdf_nse_raven(z_grid)
-linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[2], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$^*$ (Raven)"))
+linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[0], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$_\mathrm{cal}^\mathrm{Raven}$"))
 
-ecdf_kge_mhm  = ECDF(kges_mhm[:,0])
-min_z          = max(-10.0,np.min(kges_mhm[:,0]))
-max_z          = np.max(kges_mhm[:,0])
+ecdf_kge_mhm  = ECDF(kges_mhm_cal[:,0])
+min_z          = max(-10.0,np.min(kges_mhm_cal[:,0]))
+max_z          = np.max(kges_mhm_cal[:,0])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 kge_mhm_cdf   = ecdf_kge_mhm(z_grid)
-linez3         = sub.plot(z_grid, kge_mhm_cdf,  color=cc[-3], linewidth=lwidth, linestyle="--", label=str2tex("KGE (mHM)"))
+linez3         = sub.plot(z_grid, kge_mhm_cdf,  color=cc[-1], linewidth=lwidth, linestyle="--", label=str2tex("KGE$_\mathrm{cal}^\mathrm{mHM}$"))
 
-ecdf_kge_raven = ECDF(kges_mhm[:,1])
-min_z          = max(-10.0,np.min(kges_mhm[:,1]))
-max_z          = np.max(kges_mhm[:,1])
+ecdf_kge_raven = ECDF(kges_mhm_cal[:,1])
+min_z          = max(-10.0,np.min(kges_mhm_cal[:,1]))
+max_z          = np.max(kges_mhm_cal[:,1])
 z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
 kge_raven_cdf  = ecdf_kge_raven(z_grid)
-linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-3], linewidth=lwidth, linestyle="-",  label=str2tex("KGE (Raven)"))
+linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-1], linewidth=lwidth, linestyle="-",  label=str2tex("KGE$_\mathrm{cal}^\mathrm{Raven}$"))
 
 # limit plot range
 sub.set_xlim([-0.2,1.0])
@@ -985,15 +1156,69 @@ sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
 sub.set_ylabel(str2tex('CDF [-]',usetex=usetex), color='black')
 
 # add label with current number of basins
-sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_mhm))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
+# sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_mhm_cal))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
 
 # legend
 ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
                 labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
                 loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
                 #fontsize = 'x-small')
 
+# -----------------------------------------
+# KDE mHM vs blended (validation)
+# -----------------------------------------
+iplot += 1
 
+sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
+
+from   statsmodels.distributions.empirical_distribution import ECDF
+
+ecdf_nse_mhm  = ECDF(nses_mhm_val[:,0])
+min_z          = max(-10.0,np.min(nses_mhm_val[:,0]))
+max_z          = np.max(nses_mhm_val[:,0])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+nse_mhm_cdf   = ecdf_nse_mhm(z_grid)
+linez1         = sub.plot(z_grid, nse_mhm_cdf,  color=cc[2], linewidth=lwidth, linestyle="--", label=str2tex("NSE$_\mathrm{val}^\mathrm{mHM}$"))
+
+ecdf_nse_raven = ECDF(nses_mhm_val[:,1])
+min_z          = max(-10.0,np.min(nses_mhm_val[:,1]))
+max_z          = np.max(nses_mhm_val[:,1])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+nse_raven_cdf  = ecdf_nse_raven(z_grid)
+linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[2], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$_\mathrm{val}^\mathrm{Raven}$"))
+
+ecdf_kge_mhm  = ECDF(kges_mhm_val[:,0])
+min_z          = max(-10.0,np.min(kges_mhm_val[:,0]))
+max_z          = np.max(kges_mhm_val[:,0])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+kge_mhm_cdf   = ecdf_kge_mhm(z_grid)
+linez3         = sub.plot(z_grid, kge_mhm_cdf,  color=cc[-3], linewidth=lwidth, linestyle="--", label=str2tex("KGE$_\mathrm{val}^\mathrm{mHM}$"))
+
+ecdf_kge_raven = ECDF(kges_mhm_val[:,1])
+min_z          = max(-10.0,np.min(kges_mhm_val[:,1]))
+max_z          = np.max(kges_mhm_val[:,1])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+kge_raven_cdf  = ecdf_kge_raven(z_grid)
+linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-3], linewidth=lwidth, linestyle="-",  label=str2tex("KGE$_\mathrm{val}^\mathrm{Raven}$"))
+
+# limit plot range
+sub.set_xlim([-0.2,1.0])
+# sub.set_ylim([-0.0,1.0])
+
+# axis lables
+sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
+# sub.set_ylabel(str2tex('CDF [-]',usetex=usetex), color='black')
+
+# add label with current number of basins
+# sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_mhm_cal))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
+
+# legend
+ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
+                labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
+                loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
+                #fontsize = 'x-small')
 
 
 
