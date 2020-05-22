@@ -36,7 +36,7 @@ import jams
 import glob
 import datetime
 
-def read_qobs_range_from_rvt(filename):
+def read_qobs_range_from_rvt(filename,start_day,end_day):
 
     ff = open(filename, 'r')
     line = ff.readline().strip()
@@ -63,42 +63,95 @@ def read_qobs_range_from_rvt(filename):
     # print('>>> tdelta    = ',tdelta)
     # print('>>> ntime     = ',ntime)
     # print('>>> startdate = ',str(startdate))
-    # print('>>> enddate   = ',str(enddate))
+    # print('>>> enddate   = ',str(enddate))   
     
     ff.close()
 
-    return [startdate,enddate]
+    if start_day < startdate:
+        idx_start = 0
+    elif start_day > enddate:
+        nvalid = 0
+        return [startdate,enddate,nvalid]
+    else:
+        idx_start = np.int( (start_day - startdate).days * tdelta )
 
-files = glob.glob('../data_in/data_obs/*/model_basin_streamflow.rvt')
+    if end_day > enddate:
+        idx_end = np.int(tdelta*ntime)
+    elif end_day < startdate:
+        nvalid = 0
+        return [startdate,enddate,nvalid]
+    else:
+        idx_end = np.int( ((end_day - startdate).days + 1) * tdelta )
 
-cc_ok = 0
-cc_miss = 0
-overlaps = []
+    ntime = idx_end - idx_start
+
+    # print("idx_start :",idx_start)
+    # print("idx_end   :",idx_end)
+    # print("ntime     :",ntime)
+
+    # read data
+    ff = open(filename, 'r')
+    lines = ff.readlines()
+    ff.close()
+    lines = lines[idx_start+2:idx_end+2]
+    lines = np.array([ np.float(ll.strip()) for ll in lines ])
+    
+    # look for number of data points that are not -1.2345
+    n_nodata_vals = len(np.where(lines == -1.2345)[0])
+    nvalid = ntime - n_nodata_vals
+
+    return [startdate,enddate,nvalid]
+
+files = np.sort(glob.glob('../data_in/data_obs/*/model_basin_streamflow.rvt'))
+
+nvalids_calibration = []
+nvalids_validation  = []
 for ff in files:
-    #print(ff)
-    sdate, edate = read_qobs_range_from_rvt(ff)
-    #print('>>> startdate = ',str(sdate))
-    #print('>>> enddate   = ',str(edate))
 
+    # calibration period
     r1_start = datetime.datetime(1991,1,1,0,0)
     r1_end   = datetime.datetime(2010,12,31,0,0)
+    sdate, edate, nvalid_calib = read_qobs_range_from_rvt(ff,r1_start,r1_end)
+    nvalids_calibration.append(nvalid_calib)
 
-    covers_sim_period = (sdate <= r1_start) and (edate >= r1_end)
+    # validation period 1
+    r2_start = datetime.datetime(1971,1,1,0,0)
+    r2_end   = datetime.datetime(1990,12,31,0,0)
+    sdate, edate, nvalid_valid = read_qobs_range_from_rvt(ff,r2_start,r2_end)
+    nvalids_validation.append(nvalid_valid)
 
-    if covers_sim_period:
-        cc_ok += 1
-    else:
-        cc_miss += 1
+    print(ff.split('/')[3]+"; "+str(nvalid_calib)+"; "+str(nvalid_valid))
         
-        overlap = max(0,min((r1_end - sdate).days, (edate - r1_start).days) + 1)
-        overlaps.append(overlap)
-overlaps = np.array(overlaps)        
+nvalids_calibration   = np.array(nvalids_calibration)
+nvalids_validation    = np.array(nvalids_validation)
+ntime_all = (r1_end-r1_start).days + 1
+
+cc_ok   = len(np.where(nvalids_calibration == ntime_all)[0])
+cc_ko   = len(np.where(nvalids_calibration == 0        )[0])
+cc_miss = len(np.where(nvalids_calibration != ntime_all)[0])
 
 print("Basins with ALL QOBS DATA available: ",cc_ok,"  (",1.0*cc_ok/len(files)*100.,"%)")
-print("Basins with NO  QOBS DATA AT ALL   : ",len(np.where(overlaps==    0)[0]),"  (",1.0*(      len(np.where(overlaps==    0)[0]))/len(files)*100.,"%)")
+print("Basins with NO  QOBS DATA AT ALL   : ",cc_ko,"  (",1.0*cc_ko/len(files)*100.,"%)")
 print("")
 print("Basins with some missing Qobs:      ",cc_miss)
-print("Basins with at least 10 years data: ",cc_ok+len(np.where(overlaps>10*365)[0]),"  (",1.0*(cc_ok+len(np.where(overlaps>10*365)[0]))/len(files)*100.,"%)") 
-print("Basins with at least  5 years data: ",cc_ok+len(np.where(overlaps> 5*365)[0]),"  (",1.0*(cc_ok+len(np.where(overlaps> 5*365)[0]))/len(files)*100.,"%)") 
-print("Basins with at least  2 years data: ",cc_ok+len(np.where(overlaps> 2*365)[0]),"  (",1.0*(cc_ok+len(np.where(overlaps> 2*365)[0]))/len(files)*100.,"%)") 
-print("Basins with at least  1 year  data: ",cc_ok+len(np.where(overlaps> 1*365)[0]),"  (",1.0*(cc_ok+len(np.where(overlaps> 1*365)[0]))/len(files)*100.,"%)") 
+print("Basins with at least 10 years data: ",len(np.where(nvalids_calibration >= 10*365)[0]),"  (",1.0*(len(np.where(nvalids_calibration > 10*365)[0]))/len(files)*100.,"%)") 
+print("Basins with at least  5 years data: ",len(np.where(nvalids_calibration >=  5*365)[0]),"  (",1.0*(len(np.where(nvalids_calibration >  5*365)[0]))/len(files)*100.,"%)   <---- used for calibration") 
+print("Basins with at least  2 years data: ",len(np.where(nvalids_calibration >=  2*365)[0]),"  (",1.0*(len(np.where(nvalids_calibration >  2*365)[0]))/len(files)*100.,"%)") 
+print("Basins with at least  1 year  data: ",len(np.where(nvalids_calibration >=  1*365)[0]),"  (",1.0*(len(np.where(nvalids_calibration >  1*365)[0]))/len(files)*100.,"%)") 
+
+print("Number of calibration basins with enough data in validation period: ", len(np.where( (nvalids_calibration >=  5*365) & ((nvalids_validation >=  5*365)) )[0]))
+
+
+# write basin lists
+file_calib = open("basins_calibration.dat","w") 
+file_valid = open("basins_validation.dat","w") 
+for iff,ff in enumerate(files):
+
+    if nvalids_calibration[iff] >= 5*365:
+        file_calib.write(ff.split('/')[3]+"\n")
+
+        if nvalids_validation[iff] >= 5*365:
+            file_valid.write(ff.split('/')[3]+"\n")
+
+file_calib.close()
+file_valid.close()
