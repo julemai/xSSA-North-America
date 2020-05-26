@@ -23,6 +23,10 @@ scripts/lib/__pycache__
 scripts/lib/*/__pycache__
 scripts/*.pdf
 
+# figures
+figures/*.pdf
+figures/*.png
+
 # python environment (only requirements.txt)
 env-3.5/bin
 env-3.5/include
