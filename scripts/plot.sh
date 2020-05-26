@@ -30,6 +30,7 @@ dofig1=0  	# 		 Plot sensitivities of all 9 processes on a map with basin shapes
 dofig3=0  	# 		 Plot correlations of climate indexes and properties with sensitivities of processes
 dofig4=0  	# 		 Plot map of climate indexes of all basins
 dofig5=1  	# On my Mac:     Plot comparison with mHM, Hype, and VIC
+dofig6=1  	# On my Mac:     Plot comparison with PRMS
 
 
 
@@ -83,8 +84,19 @@ if [[ ${dofig5} -eq 1 ]] ; then
     #
     # plot scatterplots and CDFs of model performance compared to HYPE, VIC, and mHM
     #
-    python compare_performance_to_other_models.py -p compare_performance_to_other_models.pdf
-    pdfcrop compare_performance_to_other_models.pdf
-    mv compare_performance_to_other_models-crop.pdf ../figures/figure_5.pdf
-    rm compare_performance_to_other_models.pdf
+    python figure_5.py -p figure_5.pdf
+    pdfcrop figure_5.df
+    mv figure_5-crop.pdf ../figures/figure_5.pdf
+    rm figure_5.pdf
+fi
+
+
+if [[ ${dofig6} -eq 1 ]] ; then
+    #
+    # plot comparison of sum(si_m for all paras) with PRMS results in Markstrom et al. (2016)
+    #
+    python figure_6.py -p figure_6.pdf
+    pdfcrop figure_6.df
+    mv figure_6-crop.pdf ../figures/figure_6.pdf
+    rm figure_6.pdf
 fi
