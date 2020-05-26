@@ -22,8 +22,7 @@
 #     source ~/projects/rpp-hwheater/julemai/xSSA-North-America/env-3.5/bin/activate
 #
 # run with:
-#     run figure_2.py -p figure_2-3layer.pdf
-#     run figure_2.py -g figure_2-3layer
+#     run figure_7.py -p figure_7.pdf
 
 
 #!/usr/bin/env python
@@ -108,34 +107,29 @@ if __name__ == '__main__':
     from autostring    import astr          # in lib/
     from str2tex       import str2tex       # in lib/
     from fread         import fread         # in lib/
+    from sread         import sread         # in lib/
     from fsread        import fsread        # in lib/
     
     t1 = time.time()
 
     # -------------------------------------------------------------------------
-    # Find basins with calibration results
+    # Read list of basins that got calibrated
     # -------------------------------------------------------------------------
-    diag_files = glob.glob('ostrich-weighted-*/best/Diagnostics.csv')
-    basins = [ diag_file.split('/')[0].split('-')[2] for  diag_file in diag_files ]
-
-    # all 149 basins with NSE below 0.2 in first trial
-    # basins = ["09518500", "09479350", "08124000", "09404110", "11271290", "11303000", "11234750", "11302000", "11517500", "11525500", "06848000", "11517000", "11401112", "11399500", "11413517", "12100496", "14316455", "11367800", "12100000", "11126000", "11367760", "11070210", "14315700", "14315500", "11293200", "14091500", "11216500", "11372000", "14313700", "07143375", "07141300", "08362500", "07229200", "07229050", "07228500", "08136700", "08088610", "06856000", "06853500", "06853020", "06849500", "07227500", "08405200", "08404000", "08402000", "08401500", "08126380", "06844500", "08123850", "02172002", "07242000", "06843500", "07241800", "07241550", "07241520", "07241000", "07239700", "07239500", "07239450", "06837000", "08386000", "07227000", "08123800", "02246500", "08080500", "07234000", "07298500", "06863000", "06862850", "06862700", "08136000", "08206910", "06861000", "10219000", "12472600", "08384500", "10080000", "08383500", "08121000", "08120700", "06847500", "09416000", "06860000", "06835500", "06827500", "06131000", "08382830", "09419756", "13108150", "02187252", "07312100", "07232900", "06827000", "12362500", "09401260", "09513650", "06846500", "11246700", "06846000", "06834000", "08080700", "02394000", "07233500", "07119500", "01325000", "07142575", "09537500", "08343000", "09386030", "09400568", "09385700", "06838000", "09487000", "06354580", "09330000", "07141175", "12471400", "06307740", "09415550", "08408500", "09400562", "08433000", "08317950", "08145000", "08397600", "06177500", "06425720", "08212400", "09401110", "06307600", "09486800", "08405150", "06844900", "06344300", "08334000", "08128000", "01018500", "06678000", "08405500", "08405105", "12465400", "08401900", "09404208", "09306255", "08198500", "08317200", "01019000", "08401200", "08189300"]
-
-    # 100 random basins 
-    # basins = ["09147025", "08040600", "06472000", "02294898", "13309220", "14174000", "07040450", "09304200", "05483600", "09520280", "06639000", "06836500", "13011000", "03053500", "02313000", "02312720", "02446500", "06403700", "13022500", "06885500", "13337500", "06679500", "03597860", "02440500", "05066500", "08NG053", "02OE032", "06447230", "12039500", "11255575", "04292000", "08020000", "02054530", "10AC004", "10141000", "07029500", "05586100", "02131500", "08064100", "06635000", "06625000", "11458000", "03171000", "07140000", "10239000", "07049000", "08062700", "10351700", "07064533", "02FC016", "11451000", "04181500", "05059700", "04235440", "06915800", "05496000", "04124200", "07019000", "10318500", "05300000", "13250000", "03341300", "13069500", "01534000", "02196000", "05064000", "03320000", "03434500", "12342500", "07264000", "03069500", "06482020", "06439000", "01536000", "02312000", "05554500", "03604400", "10CB001", "10146400", "06883000", "04CA003", "11390500", "12354000", "14076500", "08073600", "05382000", "03289500", "12452800", "06025500", "12344000", "05331580", "07222500", "03221000", "08KD007", "08015500", "12061500", "05419000", "06725450", "02YN002", "05TD001"] 
+    basin_ids_cal = np.transpose(sread("basins_calibration.dat",skip=0))[0]
+    basin_ids_val = np.transpose(sread("basins_validation.dat",skip=0))[0]
 
     # -------------------------------------------------------------------------
     # Read basin metadata
     # -------------------------------------------------------------------------
 
     # basin_id; basin_name; lat; lon; area_km2; elevation_m; slope_deg; forest_frac
-    head = fread("basin_metadata/basin_physical_characteristics.txt",skip=1,separator=';',header=True)
-    meta_float, meta_string = fsread("basin_metadata/basin_physical_characteristics.txt",skip=1,separator=';',cname=["lat","lon","area_km2","elevation_m","slope_deg","forest_frac"],sname=["basin_id","basin_name"])
+    head = fread("../data_in/basin_metadata/basin_physical_characteristics.txt",skip=1,separator=';',header=True)
+    meta_float, meta_string = fsread("../data_in/basin_metadata/basin_physical_characteristics.txt",skip=1,separator=';',cname=["lat","lon","area_km2","elevation_m","slope_deg","forest_frac"],sname=["basin_id","basin_name"])
 
     dict_metadata = {}
     for ibasin in range(len(meta_float)):
 
-        if meta_string[ibasin][0] in basins:
+        if meta_string[ibasin][0] in basin_ids_cal:
             dict_basin = {}
             dict_basin["name"]        = meta_string[ibasin][1]
             dict_basin["lat"]         = meta_float[ibasin][0]
@@ -149,31 +143,57 @@ if __name__ == '__main__':
 
 
     # -------------------------------------------------------------------------
-    # Read best NSE
+    # Read basin calibration results
     # -------------------------------------------------------------------------
-    dict_nse = {}
-    for bb in basins:
 
-        idx_nse = fread('ostrich-weighted-'+bb+'/best/Diagnostics.csv',skip=1,cskip=2,header=True).index('DIAG_NASH_SUTCLIFFE')  
-        nse     = fread('ostrich-weighted-'+bb+'/best/Diagnostics.csv',skip=1,cskip=2,fill=True)[0,idx_nse]
+    # basin_id; basin_name; nse; rmse; kge
+    head = fread("../data_in/basin_metadata/basin_calibration_results.txt",skip=1,separator=';',header=True)
+    meta_float, meta_string = fsread("../data_in/basin_metadata/basin_calibration_results.txt",skip=1,separator=';',cname=["nse","rmse","kge"],sname=["basin_id","basin_name"])
 
-        dict_result = {}
-        dict_result['nse'] = nse
+    meta_string = [ [ iitem.strip() for iitem in iline ] for iline in meta_string ]
+    
+    dict_calibration = {}
+    for ibasin in range(len(meta_float)):
+        dict_basin = {}
+        dict_basin["name"]          = meta_string[ibasin][1]
+        dict_basin["nse"]           = meta_float[ibasin][0]
+        dict_basin["rmse"]          = meta_float[ibasin][1]
+        dict_basin["kge"]           = meta_float[ibasin][2]
 
-        dict_nse[bb] = dict_result
-
-        # Okklahoma and Kansas basins
-        # if dict_metadata[bb]["lat"] > 34 and dict_metadata[bb]["lat"] < 40 and dict_metadata[bb]["lon"] < -94.5 and dict_metadata[bb]["lon"] > -102:
-        #    print(bb, ';', dict_metadata[bb]["lat"],';',dict_metadata[bb]["lon"],' ; ',dict_nse[bb]['nse'])
+        if meta_string[ibasin][0] in basin_ids_cal:
+            dict_calibration[meta_string[ibasin][0]] = dict_basin
 
 
+    # -------------------------------------------------------------------------
+    # Read basin validation results
+    # -------------------------------------------------------------------------
+
+    # basin_id; basin_name; nse; rmse; kge
+    head = fread("../data_in/basin_metadata/basin_validation_results.txt",skip=1,separator=';',header=True)
+    meta_float, meta_string = fsread("../data_in/basin_metadata/basin_validation_results.txt",skip=1,separator=';',cname=["nse","rmse","kge"],sname=["basin_id","basin_name"])
+
+    meta_string = [ [ iitem.strip() for iitem in iline ] for iline in meta_string ]
+    
+    dict_validation = {}
+    for ibasin in range(len(meta_float)):
+        dict_basin = {}
+        dict_basin["name"]          = meta_string[ibasin][1]
+        dict_basin["nse"]           = meta_float[ibasin][0]
+        dict_basin["rmse"]          = meta_float[ibasin][1]
+        dict_basin["kge"]           = meta_float[ibasin][2]
+
+        if meta_string[ibasin][0] in basin_ids_val:
+            dict_validation[meta_string[ibasin][0]] = dict_basin
+
+    # -------------------------------------------------------------------------
     # sort basins starting with largest
+    # -------------------------------------------------------------------------
     areas = []
-    for ibasin_id,basin_id in enumerate(basins):
+    for ibasin_id,basin_id in enumerate(basin_ids_cal):
         areas.append(dict_metadata[basin_id]["area_km2"])
     areas = np.array(areas)
     idx_areas = np.argsort(areas)[::-1]
-    basins = np.array(basins)[idx_areas]
+    basin_ids_cal = np.array(basin_ids_cal)[idx_areas]
 
 
     # -------------------------------------------------------------------------
@@ -476,56 +496,17 @@ if __name__ == '__main__':
     # transform
     transform = ccrs.PlateCarree()._as_mpl_transform(sub)
 
-    # # Map: Europe
-    # # m = Basemap(projection='lcc', llcrnrlon=-9, llcrnrlat=35.6, urcrnrlon=25.3, urcrnrlat=53,
-    # #             lat_1=50, lat_2=70, lon_0=0, resolution='i') # Lambert conformal
-    # # Map: USA
-    # # m = Basemap(projection='lcc',
-    # #             llcrnrlon=-119, llcrnrlat=22, urcrnrlon=-64, urcrnrlat=49,
-    # #             lat_1=33, lat_2=45, lon_0=-95,
-    # #             resolution='i') # Lambert conformal
-    # # Map: Canada - Saguenay-Lac-St-Jean region
-    # llcrnrlon =  -119.0
-    # urcrnrlon =  -45.0
-    # llcrnrlat =   22.0
-    # urcrnrlat =   60.0
-    # lat_1     =   (llcrnrlat+urcrnrlat)/2.0  # first  "equator"
-    # lat_2     =   (llcrnrlat+urcrnrlat)/2.0  # second "equator"
-    # lat_0     =   (llcrnrlat+urcrnrlat)/2.0  # center of the map
-    # lon_0     =   (llcrnrlon+urcrnrlon)/2.0  # center of the map
-    # # m = Basemap(projection='lcc',
-    # #             llcrnrlon=-80, llcrnrlat=43, urcrnrlon=-75, urcrnrlat=47,
-    # #             lon_0=-77.5, lat_0=43, 
-    # #             lat_1=44, lat_2=44, 
-    # #             resolution='i') # Lambert conformal
-    # map4 = Basemap(projection='lcc',
-    #                 width=9000000,height=7000000,
-    #                 lat_1=45.,lat_2=55,lat_0=50,lon_0=-107.,
-    #                 area_thresh=6000., # only large lakes
-    #                 resolution='i') # Lambert conformal
-              
-    # # draw parallels and meridians.
-    # # labels: [left, right, top, bottom]
-    # map4.drawparallels(np.arange(-80.,81.,6.),  labels=[1,0,0,0], dashes=[1,1], linewidth=0.25, color='0.5')
-    # map4.drawmeridians(np.arange(-180.,181.,15.),labels=[0,0,0,1], dashes=[1,1], linewidth=0.25, color='0.5')
-
-    # # draw cooastlines and countries
-    # map4.drawcoastlines(linewidth=0.3)
-    # map4.drawmapboundary(fill_color=ocean_color, linewidth=0.3)
-    # map4.drawcountries(color='black', linewidth=0.3)
-    # map4.fillcontinents(color='white', lake_color=ocean_color)
-
 
     # plt.title(str2tex("Model performance",usetex=usetex))
 
     # add label with current number of basins
-    sub.text(0.05,0.05,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(basins))+"$",usetex=usetex),transform=sub.transAxes)
+    sub.text(0.05,0.05,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(basin_ids_cal))+"$",usetex=usetex),transform=sub.transAxes)
 
     # adjust frame linewidth 
     sub.outline_patch.set_linewidth(lwidth)
 
     coord_catch   = []
-    for ibasin_id,basin_id in enumerate(basins):
+    for ibasin_id,basin_id in enumerate(basin_ids_cal):
 
         shapefilename =  "wrong-directory"+basin_id+"/shape.dat"    # "observations/"+basin_id+"/shape.dat"
 
@@ -533,7 +514,7 @@ if __name__ == '__main__':
         icolor = 'red'
         max_nse = 1.0
         min_nse = 0.0
-        inse = dict_nse[basin_id]['nse']
+        inse = dict_calibration[basin_id]['nse']
         if inse < min_nse:
             icolor = cc[0]
         elif inse > max_nse:
@@ -583,10 +564,10 @@ if __name__ == '__main__':
                     #         zorder=400
                     #         )
 
-            print("Basin: ",basin_id)
-            print("   --> area      =  ",dict_metadata[basin_id]["area_km2"])
-            print("   --> lon range = [",xxmin,",",xxmax,"]")
-            print("   --> lat range = [",yymin,",",yymax,"]")
+            # print("Basin: ",basin_id)
+            # print("   --> area      =  ",dict_metadata[basin_id]["area_km2"])
+            # print("   --> lon range = [",xxmin,",",xxmax,"]")
+            # print("   --> lat range = [",yymin,",",yymax,"]")
 
         # shapefile doesnt exist only plot dot at location
         else:   
@@ -612,8 +593,8 @@ if __name__ == '__main__':
                         arrowprops=dict(arrowstyle="->",relpos=(0.0,1.0),linewidth=0.6),
                         zorder=400
                         )
-            print("Basin: ",basin_id)
-            print("   --> lat/lon = [",dict_metadata[basin_id]["lat"],",",dict_metadata[basin_id]["lon"],"]")
+            # print("Basin: ",basin_id)
+            # print("   --> lat/lon = [",dict_metadata[basin_id]["lat"],",",dict_metadata[basin_id]["lon"],"]")
             
     # -------------------------------------------------------------------------
     # (1b) Colorbar
@@ -624,7 +605,7 @@ if __name__ == '__main__':
     cbar = mpl.colorbar.ColorbarBase(csub, norm=mpl.colors.Normalize(vmin=min_nse, vmax=max_nse), cmap=cmap, orientation='horizontal', extend='min')
     cbar.set_label(str2tex("NSE [-]",usetex=usetex))
 
-    nses= np.array([ dict_nse[basin_id]['nse'] for basin_id in basins ])
+    nses= np.array([ dict_calibration[basin_id]['nse'] for basin_id in basin_ids_cal ])
     print('')
     print('-----------------------------------')
     print('Median NSE: ',np.median(nses))
