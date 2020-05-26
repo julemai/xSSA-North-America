@@ -31,7 +31,7 @@ dofig3=0  	# 		 Plot correlations of climate indexes and properties with sensiti
 dofig4=0  	# 		 Plot map of climate indexes of all basins
 dofig5=0  	# On my Mac:     Plot comparison with mHM, Hype, and VIC
 dofig6=0  	# On my Mac:     Plot comparison with PRMS
-dofig7=1  	# Graham:        Plot calibration results on a map   (MAc has problems with ticks on maps)
+dofig7=1  	# Graham/Mac:    Plot calibration results on a map   (ticks on maps are only plotted in IPYTHON)
 
 
 
