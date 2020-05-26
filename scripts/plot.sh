@@ -26,12 +26,13 @@ pid=$$
 
 
 doclimindex=0   #                Derives Knoben climate indexes for all basins
+
 dofig1=0  	# 		 Plot sensitivities of all 9 processes on a map with basin shapes
 dofig3=0  	# 		 Plot correlations of climate indexes and properties with sensitivities of processes
 dofig4=0  	# 		 Plot map of climate indexes of all basins
-dofig5=0  	# On my Mac:     Plot comparison with mHM, Hype, and VIC
-dofig6=0  	# On my Mac:     Plot comparison with PRMS
-dofig7=1  	# Graham/Mac:    Plot calibration results on a map   (ticks on maps are only plotted in IPYTHON)
+dofig5=0  	# Mac:           Plot comparison with mHM, Hype, and VIC (only Mac because needs data_supp)
+dofig6=0  	# Graham:        Plot comparison with PRMS (only Graham because needs SA results; ticks on maps are only plotted in IPYTHON)
+dofig7=0  	# Graham/Mac:    Plot calibration results on a map   (ticks on maps are only plotted in IPYTHON)
 
 
 
