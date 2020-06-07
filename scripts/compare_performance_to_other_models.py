@@ -37,8 +37,12 @@ dotitle   = True  # True: add catchment titles to subpanels
 """
 
           Model       Cal-Period              Cal-criteria    Val-Period              Data reported
-We        Blended     Jan 1991 - Dec 2010     NSE             None                    Calibration NSE; derived KGE
+We        Blended     Jan 1991 - Dec 2010     NSE             Jan 1971 - Dec 1990     Calibration NSE; derived KGE
 SMHI      Hype        Jan 1981 - Dec 2012     KGE             None                    Calibration KGE; derived NSE
+NCAR      VIC         Oct 1999 - Sep 2008     NSE             Oct 1989 - Sep 1999     Calibration NSE
+UFZ       mHM         Oct 1999 - Sep 2008     NSE             Oct 1989 - Sep 1999     Calibration NSE
+
+
 CAMELS    SAC-SMA     Jan 1980 - Dec 2014     NSE             None                    Calibration NSE
 
 Kratzert  VIC_basin   Oct 1999 - Sep 2008     KGE?            Oct 1989 - Sep 1999     Validation  NSE
@@ -67,8 +71,40 @@ and downloaded (afterwards formated to JSON):
     wget https://wwhype.smhi.se/model-performance/generated/stations.js  --> hype_SMHI_stations.js
 
 -----------------------
-mHM/SAC-SMA
+mHM (UFZ)
 -----------------------
+
+Used in:
+
+    Rakovec, O., Mizukami, N., Kumar, R., Newman, A., Thober, S., Wood, A. W., et al. (2019). 
+    Diagnostic evaluation of large‐domain hydrologic models calibrated across the contiguous United States. 
+    Journal of Geophysical Research: Atmospheres, 2019; 124: 13991–14007. 
+    https://doi.org/10.1029/2019JD030767
+
+downloaded from:
+
+    https://doi.org/10.5281/zenodo.2630558
+
+
+-----------------------
+VIC (NCAR)
+-----------------------
+
+Used in:
+
+    Rakovec, O., Mizukami, N., Kumar, R., Newman, A., Thober, S., Wood, A. W., et al. (2019). 
+    Diagnostic evaluation of large‐domain hydrologic models calibrated across the contiguous United States. 
+    Journal of Geophysical Research: Atmospheres, 2019; 124: 13991–14007. 
+    https://doi.org/10.1029/2019JD030767
+
+downloaded from:
+
+    https://doi.org/10.5281/zenodo.2630558
+
+
+
+
+NOT USED HERE:
 
 Used in:
     Kratzert, F., Klotz, D., Shalev, G., Klambauer, G., Hochreiter, S., and Nearing, G.: 
