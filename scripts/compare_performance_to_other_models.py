@@ -37,7 +37,7 @@ dotitle   = True  # True: add catchment titles to subpanels
 """
 
           Model       Cal-Period              Cal-criteria    Val-Period              Data reported
-We        Blended     Jan 1991 - Dec 2010     NSE             Jan 1971 - Dec 1990     Calibration NSE; derived KGE
+UW        Blended     Jan 1991 - Dec 2010     NSE             Jan 1971 - Dec 1990     Calibration NSE; derived KGE
 SMHI      Hype        Jan 1981 - Dec 2012     KGE             None                    Calibration KGE; derived NSE
 NCAR      VIC         Oct 1999 - Sep 2008     NSE             Oct 1989 - Sep 1999     Calibration NSE
 UFZ       mHM         Oct 1999 - Sep 2008     NSE             Oct 1989 - Sep 1999     Calibration NSE
