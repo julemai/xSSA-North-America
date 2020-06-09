@@ -13,6 +13,8 @@ data_supp/mizukami_WRR_2017/*/*/hcdn_vali_case04.txt
 data_supp/mizukami_WRR_2017/analysis/*
 data_supp/mizukami_WRR_2017/README.calib
 data_supp/mizukami_WRR_2017/gauge_information.txt
+data_supp/markstrom_HESS_2016/sensScores/*
+data_supp/markstrom_HESS_2016/hrusAllConus*
 
 # some python generated files
 scripts/*.pyc

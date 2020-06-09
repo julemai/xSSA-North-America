@@ -180,6 +180,139 @@ if __name__ == '__main__':
 
     print("min_sobol_indexes: ",min_sobol_indexes)
     print("max_sobol_indexes: ",max_sobol_indexes)
+
+    # -------------------------------------------------------------------------
+    # Read shape files from PMRS
+    # -------------------------------------------------------------------------
+    print('')
+    print('Reading Markstrom HRU shapes ...')
+    import shapefile
+    from shapely.geometry import Polygon, MultiPolygon
+    
+    sf = shapefile.Reader("../data_supp/markstrom_HESS_2016/hrusAllConus/hrusAllConusDd")
+    #myshp = open("../data_supp/markstrom_HESS_2016/hrusAllConus/hrusAllConusDd.shp", "rb")
+    #mydbf = open("../data_supp/markstrom_HESS_2016/hrusAllConus/hrusAllConusDd.dbf", "rb")
+    #r = shapefile.Reader(shp=myshp, dbf=mydbf)
+
+    shapes = sf.shapes()
+    nshapes = len(shapes)
+    print("Number of Markstrom HRU shapes found: ",nshapes)
+
+    # sf.fields
+    #      [['hru_id_loc', 'N', 9, 0],     # hru_id in this region (unique per region; starts with 1)
+    #       ['hru_id', 'N', 9, 0],         # hru_id overall (unique throughout whole dataset; starts with 1)
+    #       ['region', 'C', 50, 0]]        # regions 1-18: 1-9, then 10 lower, 10 upper, then 11-18
+    #                                      # The fact that region 10 (Missouri River Basin) is split is a real pain.
+    #                                      # USGS didn't make this scheme up, but it follows the NHD plus region naming convention. 
+    fields = ['hru_id_loc','hru_id','region']
+
+    all_hru_shapes = {}
+    regions = []
+    for ishape in range(nshapes):
+
+        rec = sf.record(ishape)      # e.g., [683, 17871, 'r04']
+        hru_id_loc = rec[0]
+        hru_id     = rec[1]
+        region     = rec[2]
+        regions.append(region)
+
+        tmp_dict = {}
+        tmp_dict['hru_id_loc'] = hru_id_loc
+        tmp_dict['region']     = region
+        # tmp_dict['geometry']   = shapes[ishape].points
+        tmp_dict['geometry']   = sf.shape(ishape).__geo_interface__
+        tmp_dict['bbox']       = shapes[ishape].bbox
+        
+        all_hru_shapes[hru_id] = tmp_dict
+
+    # -------------------------------------------------------------------------
+    # Read sensitivities for PMRS
+    # -------------------------------------------------------------------------
+    print('')
+    print('Reading Markstrom sensitivities ...')
+    regions = np.unique(regions)
+    markstrom_sensi = {}
+    for iregion in regions:
+        markstrom_sensi[iregion] = fread('../data_supp/markstrom_HESS_2016/sensScores/julie/'+iregion+'_hru_outflowMeanSens.csv',skip=1)
+
+
+    # -------------------------------------------------------------------------
+    # Read PRMS results for all HRUs for each basin and average over all PRMS 35 variables over all HRUs for
+    # file: ../data_supp/markstrom_HESS_2016/sensScores/<region>/hru_outflowMeanSens.csv
+    #       lines: hru_id_loc for this <region>
+    # -------------------------------------------------------------------------
+    print('')
+    print('Starting with aggregating sensitvities of HRUs to basins ...')
+
+    fast_indexes = {}
+    for ibasin_id,basin_id in enumerate(basin_ids):
+
+        # read shape of our basin
+        sf = shapefile.Reader("../data_in/data_obs/"+basin_id+"/shape_"+basin_id+"_coarse/shape_"+basin_id+"_coarse")
+
+        # get points
+        geometry_basin = sf.shape(0).__geo_interface__
+
+        # get bbox
+        bbox = sf.shape(0).bbox
+
+        # find all HRUs that intersect with this shape
+        p_xSSA = Polygon(geometry_basin['coordinates'][0])
+
+        # check if an intersecting HRU will be found
+        no_hru = True
+        area_all_hru = 0.0
+        sensi = 0.0
+
+        for iHRU in all_hru_shapes: #range(100): #range(nshapes):
+
+            area_this_hru = 0.0
+            
+            if all_hru_shapes[iHRU]['geometry']['type'] == 'MultiPolygon':
+                nmultis = len(all_hru_shapes[iHRU]['geometry']['coordinates'])
+                p_PRMS = []
+                for imulti in range(nmultis):
+                    p_PRMS.append( Polygon(all_hru_shapes[iHRU]['geometry']['coordinates'][imulti][0]) )
+            elif all_hru_shapes[iHRU]['geometry']['type'] == 'Polygon':
+                nmultis = 1
+                p_PRMS = [ Polygon(all_hru_shapes[iHRU]['geometry']['coordinates'][0]) ]
+            else:
+                print('iHRU = ',iHRU,'    --> unknown geometry type')
+
+            for imulti in range(nmultis):
+                if (p_xSSA.intersects(p_PRMS[imulti])):
+
+                    no_hru = False
+                    p_intersect = p_xSSA.intersection(p_PRMS[imulti])
+                    # print(p_intersect) 
+                    print('Basin: '+basin_id+' ---> ', p_intersect.area / p_PRMS[imulti].area * 100., '%   of HRU ',iHRU, '(part ',imulti+1,'/',nmultis,')')
+
+                    # count areas that we account for in total
+                    area_all_hru += p_intersect.area
+
+                    # count areas we account for in this HRU (only different if HRU is split into multiple pieces)
+                    area_this_hru += p_intersect.area
+
+            # read in PMRS sensi results
+            this_hru_region = all_hru_shapes[iHRU]['region']
+            this_hru_id_loc = all_hru_shapes[iHRU]['hru_id_loc']
+            sensi_from_file = np.sum(markstrom_sensi[this_hru_region][this_hru_id_loc-1])   # -1 because numberung starts with 1 not 0
+
+            # scale them with size of this HRU compared to whole basin size
+            sensi += sensi_from_file * area_this_hru/p_xSSA.area
+
+        if no_hru:
+            sensi = -9999.0
+        else:
+            print("Area basin:        ", p_xSSA.area)
+            print("Area partial HRUs: ", area_all_hru)
+            print("Error:             ", np.abs(p_xSSA.area-area_all_hru)/p_xSSA.area * 100.,"%")
+
+        # sensi
+        print('Sensi for basin ',basin_id,' = ',sensi)
+        fast_indexes[basin_id] = sensi
+
+    stop
         
 # -------------------------------------------------------------------------
 # Customize plots
