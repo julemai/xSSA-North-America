@@ -1,3 +1,6 @@
+**.pyc
+**.DS_Store
+
 # basin forcings, observed streamflow, and shapes are ignored
 data_in/*.mat
 data_in/data_obs/*
@@ -15,6 +18,8 @@ data_supp/mizukami_WRR_2017/README.calib
 data_supp/mizukami_WRR_2017/gauge_information.txt
 data_supp/markstrom_HESS_2016/sensScores/*
 data_supp/markstrom_HESS_2016/hrusAllConus*
+data_supp/newman_AMS_2017/sac_benchmark_output/*
+data_supp/newman_AMS_2017/sac_benchmark_output.tgz
 
 # some python generated files
 scripts/*.pyc

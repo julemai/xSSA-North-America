@@ -698,11 +698,23 @@ if __name__ == '__main__':
     # -----------------------
     ylim = [-0.1, 0.6]
 
+    # [left, bottom, width, height]
+    pos_a      = [0.100,0.1750,0.255,0.7750]
+    pos_b      = [0.555,0.4825,0.255,0.4675]
+    pos_c      = [0.555,0.1750,0.255,0.2275]
+    pos_legend = [0.180,0.0200,0.610,0.09]
+
     # -------------
     # Parameter sensitivities
     # -------------
     iplot += 1
-    sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
+
+    # [left, bottom, width, height]
+    # sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
+    # print("(A) position was: ",jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
+    
+    sub = fig.add_axes(pos_a)
+    
 
     active_snowproc = "+".join(inputfile.split('.')[0].split('_')[4:-1])
     if (active_snowproc == "HMETS_SIMPLE_HBV"):
@@ -757,7 +769,7 @@ if __name__ == '__main__':
         
     
     npara = np.shape(sobol_indexes['paras']['wsi'][ikey])[0]
-    mark1 = sub.bar(np.arange(npara), sobol_indexes['paras']['wsti'][ikey], align='center', alpha=0.3,
+    mark1 = sub.barh(np.arange(npara), sobol_indexes['paras']['wsti'][ikey], align='center', alpha=0.3,
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color, quick_color,
                            evapo_color, evapo_color, evapo_color,
@@ -777,7 +789,7 @@ if __name__ == '__main__':
                            evapo_color,
                            basef_color,
                            snowb_color, snowb_color) ) #, snowb_color) )    # STi wmean
-    mark2 = sub.bar(np.arange(npara), sobol_indexes['paras']['wsi'][ikey], align='center', alpha=1.0,
+    mark2 = sub.barh(np.arange(npara), sobol_indexes['paras']['wsi'][ikey], align='center', alpha=1.0,
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color, quick_color,
                            evapo_color, evapo_color, evapo_color,
@@ -798,22 +810,30 @@ if __name__ == '__main__':
                            basef_color,
                            snowb_color, snowb_color) ) #, snowb_color) )    # Si  wmean
 
-    sub.set_ylim(ylim)
+    sub.set_ylim([-1,npara])
+    sub.set_xlim(ylim)
 
     npara = len(paras)
-    plt.xticks(np.arange(npara), paras,rotation=90,fontsize='x-small')
+    plt.yticks(np.arange(npara), paras,rotation=0,fontsize='x-small')
     
-    plt.title(jams.str2tex('Sensitivities of Model Parameters',usetex=usetex))
-    plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
+    plt.title(jams.str2tex('Sensitivities\n Model Parameters',usetex=usetex))
+    plt.xlabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
-    jams.abc2plot(sub,dxabc/2,dyabc,iplot,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
+    sub.invert_yaxis()  # labels read top-to-bottom 
+
+    jams.abc2plot(sub,0.95,0.99,iplot,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top',horizontalalignment='right')
 
     # -------------
     # Process option sensitivities
     # -------------
     iplot += 2
     #                  [left, bottom, width, height] 
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[0.0,0.0,unequal_second_row,0.0])
+    # sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[0.0,0.0,unequal_second_row,0.0])
+    # print("(B) position was: ",jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[0.0,0.0,unequal_second_row,0.0])
+    
+    # [left, bottom, width, height]
+    # sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
+    sub = fig.add_axes(pos_b)
 
     active_snowproc = "_".join(inputfile.split('.')[0].split('_')[4:-1])
     if (active_snowproc == "HMETS_SIMPLE_HBV"):
@@ -892,7 +912,7 @@ if __name__ == '__main__':
     procopt = [ jams.str2tex(ii,usetex=usetex) for ii in procopt ]
     
     nopt = np.shape(sobol_indexes['process_options']['wsi'][ikey])[0]
-    mark1 = sub.bar(np.arange(nopt), sobol_indexes['process_options']['wsti'][ikey], align='center', alpha=0.6,
+    mark1 = sub.barh(np.arange(nopt), sobol_indexes['process_options']['wsti'][ikey], align='center', alpha=0.6,
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color,
                            evapo_color, evapo_color,
@@ -904,7 +924,7 @@ if __name__ == '__main__':
                            evapo_color,
                            basef_color,
                            snowb_color, snowb_color, snowb_color))    # STi wmean
-    mark2 = sub.bar(np.arange(nopt), sobol_indexes['process_options']['wsi'][ikey], align='center', alpha=1.0,
+    mark2 = sub.barh(np.arange(nopt), sobol_indexes['process_options']['wsi'][ikey], align='center', alpha=1.0,
                     color=(infil_color, infil_color, infil_color,
                            quick_color, quick_color, quick_color,
                            evapo_color, evapo_color,
@@ -917,22 +937,30 @@ if __name__ == '__main__':
                            basef_color,
                            snowb_color, snowb_color, snowb_color))        # Si  wmean
 
-    sub.set_ylim(ylim)
+    sub.set_ylim([-1,nopt])
+    sub.set_xlim(ylim)
 
     nopt = len(procopt)
-    plt.xticks(np.arange(nopt), procopt,rotation=90,fontsize='x-small')
+    plt.yticks(np.arange(nopt), procopt,rotation=0,fontsize='x-small')
     
-    plt.title(jams.str2tex('Sensitivities of Process Options',usetex=usetex))
-    plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
+    plt.title(jams.str2tex('Sensitivities\n Process Options',usetex=usetex))
+    # plt.xlabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
-    jams.abc2plot(sub,dxabc,dyabc,iplot-1,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
+    sub.invert_yaxis()  # labels read top-to-bottom 
+
+    jams.abc2plot(sub,0.95,0.985,iplot-1,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top',horizontalalignment='right')
 
     # -------------
     # Process sensitivities
     # -------------
     iplot += 1
     #                  [left, bottom, width, height] 
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row,0.0,-unequal_second_row,0.0])
+    # sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row,0.0,-unequal_second_row,0.0])
+    # print("(C) position was: ",jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row,0.0,-unequal_second_row,0.0])
+
+    # [left, bottom, width, height]
+    # sub = fig.add_axes(jams.position(nrow, 1, iplot, hspace=hspace/2, vspace=vspace))
+    sub = fig.add_axes(pos_c)
 
     processes = ['Infiltration $M$','Quickflow $N$','Evaporation $O$','Baseflow $P$','Snow Balance $Q$', 'Convolution (srfc runoff) $R$',
                  'Convolution (dlyd runoff) $S$', 'Potential Melt $T$', 'Percolation $U$',
@@ -969,52 +997,62 @@ if __name__ == '__main__':
         print("Overall sensitivity of sel processes: ",perc,"%")
     
     nproc = np.shape(sobol_indexes['processes']['wsi'][ikey])[0]    
-    mark1 = sub.bar(    np.arange(nproc), sobol_indexes['processes']['wsti'][ikey], align='center', alpha=0.6,
+    mark1 = sub.barh(    np.arange(nproc), sobol_indexes['processes']['wsti'][ikey], align='center', alpha=0.6,
                         color=(infil_color, quick_color, evapo_color, basef_color, snowb_color,
                                convs_color, convd_color, potme_color, perco_color,
                                rspar_color, rscor_color)) #, soilm_color))    # STi wmean
-    mark2 = sub.bar(    np.arange(nproc), sobol_indexes['processes']['wsi'][ikey], align='center', alpha=1.0,
+    mark2 = sub.barh(    np.arange(nproc), sobol_indexes['processes']['wsi'][ikey], align='center', alpha=1.0,
                         color=(infil_color, quick_color, evapo_color, basef_color, snowb_color,
                                convs_color, convd_color, potme_color, perco_color,
                                rspar_color, rscor_color)) #, soilm_color))    # Si  wmean
 
-    sub.set_ylim(ylim)
+    sub.set_ylim([-1,nproc])
+    sub.set_xlim(ylim)
     
-    plt.xticks(np.arange(nproc), processes,rotation=90,fontsize='x-small')
-    plt.title(jams.str2tex('Sensitivities of Processes',usetex=usetex))
-    #plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
+    plt.yticks(np.arange(nproc), processes,rotation=0,fontsize='x-small')
+    plt.title(jams.str2tex('Sensitivities\n Processes',usetex=usetex))
+    plt.xlabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
-    jams.abc2plot(sub,dxabc,dyabc,iplot-1,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
+    sub.invert_yaxis()  # labels read top-to-bottom
 
+    jams.abc2plot(sub,0.95,0.97,iplot-1,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top',horizontalalignment='right')
+
+
+    # -------------
+    # Legend
+    # -------------
     #                  [left, bottom, width, height] 
-    sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.02])
+    # sub = fig.add_axes(jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.02])
+    # print('Legend position was: ',jams.position(nrow, ncol, iplot, hspace=hspace/2, vspace=vspace)+[unequal_second_row/2,-0.04,-unequal_second_row,0.02])
+    sub = fig.add_axes(pos_legend)
+
     sub.axis('off')
     # Create custom artists
     #      (left, bottom), width, height
-    boxSi_1   = patches.Rectangle( (0.00, -0.75), 0.03, 0.05, color = infil_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_2   = patches.Rectangle( (0.04, -0.75), 0.03, 0.05, color = quick_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_3   = patches.Rectangle( (0.08, -0.75), 0.03, 0.05, color = evapo_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_4   = patches.Rectangle( (0.12, -0.75), 0.03, 0.05, color = basef_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_5   = patches.Rectangle( (0.16, -0.75), 0.03, 0.05, color = snowb_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_6   = patches.Rectangle( (0.20, -0.75), 0.03, 0.05, color = convs_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_7   = patches.Rectangle( (0.24, -0.75), 0.03, 0.05, color = convd_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_8   = patches.Rectangle( (0.28, -0.75), 0.03, 0.05, color = potme_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_9   = patches.Rectangle( (0.32, -0.75), 0.03, 0.05, color = perco_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_10  = patches.Rectangle( (0.36, -0.75), 0.03, 0.05, color = rspar_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_11  = patches.Rectangle( (0.40, -0.75), 0.03, 0.05, color = rscor_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSi_12  = patches.Rectangle( (0.44, -0.75), 0.03, 0.05, color = soilm_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_1  = patches.Rectangle( (0.00, -0.90), 0.03, 0.05, color = infil_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_2  = patches.Rectangle( (0.04, -0.90), 0.03, 0.05, color = quick_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_3  = patches.Rectangle( (0.08, -0.90), 0.03, 0.05, color = evapo_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_4  = patches.Rectangle( (0.12, -0.90), 0.03, 0.05, color = basef_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_5  = patches.Rectangle( (0.16, -0.90), 0.03, 0.05, color = snowb_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_6  = patches.Rectangle( (0.20, -0.90), 0.03, 0.05, color = convs_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_7  = patches.Rectangle( (0.24, -0.90), 0.03, 0.05, color = convd_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_8  = patches.Rectangle( (0.28, -0.90), 0.03, 0.05, color = potme_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_9  = patches.Rectangle( (0.32, -0.90), 0.03, 0.05, color = perco_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_10 = patches.Rectangle( (0.36, -0.90), 0.03, 0.05, color = rspar_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_11 = patches.Rectangle( (0.40, -0.90), 0.03, 0.05, color = rscor_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_12 = patches.Rectangle( (0.44, -0.90), 0.03, 0.05, color = soilm_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_1   = patches.Rectangle( (0.00, 0.90), 0.03, 0.12, color = infil_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_2   = patches.Rectangle( (0.04, 0.90), 0.03, 0.12, color = quick_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_3   = patches.Rectangle( (0.08, 0.90), 0.03, 0.12, color = evapo_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_4   = patches.Rectangle( (0.12, 0.90), 0.03, 0.12, color = basef_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_5   = patches.Rectangle( (0.16, 0.90), 0.03, 0.12, color = snowb_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_6   = patches.Rectangle( (0.20, 0.90), 0.03, 0.12, color = convs_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_7   = patches.Rectangle( (0.24, 0.90), 0.03, 0.12, color = convd_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_8   = patches.Rectangle( (0.28, 0.90), 0.03, 0.12, color = potme_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_9   = patches.Rectangle( (0.32, 0.90), 0.03, 0.12, color = perco_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_10  = patches.Rectangle( (0.36, 0.90), 0.03, 0.12, color = rspar_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_11  = patches.Rectangle( (0.40, 0.90), 0.03, 0.12, color = rscor_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSi_12  = patches.Rectangle( (0.44, 0.90), 0.03, 0.12, color = soilm_color, alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_1  = patches.Rectangle( (0.00, 0.64), 0.03, 0.12, color = infil_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_2  = patches.Rectangle( (0.04, 0.64), 0.03, 0.12, color = quick_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_3  = patches.Rectangle( (0.08, 0.64), 0.03, 0.12, color = evapo_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_4  = patches.Rectangle( (0.12, 0.64), 0.03, 0.12, color = basef_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_5  = patches.Rectangle( (0.16, 0.64), 0.03, 0.12, color = snowb_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_6  = patches.Rectangle( (0.20, 0.64), 0.03, 0.12, color = convs_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_7  = patches.Rectangle( (0.24, 0.64), 0.03, 0.12, color = convd_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_8  = patches.Rectangle( (0.28, 0.64), 0.03, 0.12, color = potme_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_9  = patches.Rectangle( (0.32, 0.64), 0.03, 0.12, color = perco_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_10 = patches.Rectangle( (0.36, 0.64), 0.03, 0.12, color = rspar_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_11 = patches.Rectangle( (0.40, 0.64), 0.03, 0.12, color = rscor_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_12 = patches.Rectangle( (0.44, 0.64), 0.03, 0.12, color = soilm_color, alpha=0.4, fill  = True, transform=sub.transAxes, clip_on=False )
     sub.add_patch(boxSi_1)  ;  sub.add_patch(boxSTi_1)
     sub.add_patch(boxSi_2)  ;  sub.add_patch(boxSTi_2)
     sub.add_patch(boxSi_3)  ;  sub.add_patch(boxSTi_3)
@@ -1028,8 +1066,8 @@ if __name__ == '__main__':
     sub.add_patch(boxSi_11) ;  sub.add_patch(boxSTi_11)
     sub.add_patch(boxSi_12) ;  sub.add_patch(boxSTi_12)
     
-    sub.text(0.50, -0.72, jams.str2tex("Sobol' main effect $\overline{S_i^w}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.50, -0.87, jams.str2tex("Sobol' total effect $\overline{ST_i^w}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.50, 0.92, jams.str2tex("Sobol' main effect $\overline{S_i^w}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.50, 0.66, jams.str2tex("Sobol' total effect $\overline{ST_i^w}$",usetex=usetex), horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
 
 
     if (outtype == 'pdf'):

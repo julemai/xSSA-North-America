@@ -77,8 +77,8 @@ mHM (UFZ)
 Used in:
 
     Rakovec, O., Mizukami, N., Kumar, R., Newman, A., Thober, S., Wood, A. W., et al. (2019). 
-    Diagnostic evaluation of large‐domain hydrologic models calibrated across the contiguous United States. 
-    Journal of Geophysical Research: Atmospheres, 2019; 124: 13991–14007. 
+    Diagnostic evaluation of large-domain hydrologic models calibrated across the contiguous United States. 
+    Journal of Geophysical Research: Atmospheres, 2019; 124: 13991-14007. 
     https://doi.org/10.1029/2019JD030767
 
 downloaded from:
@@ -93,8 +93,8 @@ VIC (NCAR)
 Used in:
 
     Rakovec, O., Mizukami, N., Kumar, R., Newman, A., Thober, S., Wood, A. W., et al. (2019). 
-    Diagnostic evaluation of large‐domain hydrologic models calibrated across the contiguous United States. 
-    Journal of Geophysical Research: Atmospheres, 2019; 124: 13991–14007. 
+    Diagnostic evaluation of large-domain hydrologic models calibrated across the contiguous United States. 
+    Journal of Geophysical Research: Atmospheres, 2019; 124: 13991-14007. 
     https://doi.org/10.1029/2019JD030767
 
 downloaded from:
@@ -284,6 +284,104 @@ if __name__ == '__main__':
 
         if meta_string[ibasin][0] in basin_ids_val:
             dict_validation[meta_string[ibasin][0]] = dict_basin
+
+    # -------------------------------------------------------------------------
+    # Read SAC-SMA data (calibration)
+    # -------------------------------------------------------------------------
+    print("Reading SAC-SMA results (calibration) ...")
+    
+    basins_sac_sma = glob.glob("../data_supp/newman_AMS_2017/sac_benchmark_output/*_model_output_maurer.txt")
+    basins_sac_sma = [ ifile.split('/')[4].split('_')[0][1:] for ifile in basins_sac_sma ]
+
+
+    # -------------------------------------------------------------------------
+    # Try to find station from our set in SAC-SMA set (calibration)
+    # -------------------------------------------------------------------------
+
+    cc = 0
+    merged_data_sac_sma_cal = {}
+    for basin_id in basin_ids_cal:
+
+        if basin_id in basins_sac_sma:
+
+            cc += 1
+            sac_sma_data = fread("../data_supp/newman_AMS_2017/sac_benchmark_output/0"+basin_id+"_model_output_maurer.txt",skip=0)
+
+            dict_merged = {}
+            #
+            # sac_sma simulated and observed streamflow
+            # Andy Newman email (June 11, 2020):
+            #    model runoff (mm/day) is column 10
+            #    obs   runoff (mm/day) is column 11
+
+            # derive KGE and NSE
+            dict_merged['kge_sac_sma_cal']  = kge(sac_sma_data[:,10],sac_sma_data[:,9])
+            dict_merged['nse_sac_sma_cal']  = nse(sac_sma_data[:,10],sac_sma_data[:,9])
+            #
+            # our data for blended model
+            dict_merged['name_our']  = dict_metadata[basin_id]['name']
+            dict_merged['lon_our']   = dict_metadata[basin_id]['lon_gauge_deg']
+            dict_merged['lat_our']   = dict_metadata[basin_id]['lat_gauge_deg']
+            dict_merged['area_our']  = dict_metadata[basin_id]['area_km2']
+            dict_merged['kge_our_cal']   = dict_calibration[basin_id]['kge']
+            dict_merged['nse_our_cal']   = dict_calibration[basin_id]['nse']
+
+            merged_data_sac_sma_cal[basin_id] = dict_merged
+
+    # our total number of stations:                675
+    # number of calibrated stations in our DB:
+    # print("Overlap C: ",len(merged_data_sac_sma_cal.keys()))
+
+    nses_sac_sma_cal = np.array([ [merged_data_sac_sma_cal[ii]["nse_sac_sma_cal"], merged_data_sac_sma_cal[ii]["nse_our_cal"]] for ii in merged_data_sac_sma_cal ])
+    kges_sac_sma_cal = np.array([ [merged_data_sac_sma_cal[ii]["kge_sac_sma_cal"], merged_data_sac_sma_cal[ii]["kge_our_cal"]] for ii in merged_data_sac_sma_cal ])
+
+
+    # -------------------------------------------------------------------------
+    # Read SAC-SMA data (validation)
+    # -------------------------------------------------------------------------
+    print("Reading SAC-SMA results (validation) ...")
+    
+    basins_sac_sma = glob.glob("../data_supp/newman_AMS_2017/sac_benchmark_output/*_model_output_maurer.txt_val")
+    basins_sac_sma = [ ifile.split('/')[4].split('_')[0][1:] for ifile in basins_sac_sma ]
+
+
+    # -------------------------------------------------------------------------
+    # Try to find station from our set in SAC-SMA set (validation)
+    # -------------------------------------------------------------------------
+
+    cc = 0
+    merged_data_sac_sma_val = {}
+    for basin_id in basin_ids_val:
+
+        if basin_id in basins_sac_sma:
+
+            cc += 1
+            sac_sma_data = fread("../data_supp/newman_AMS_2017/sac_benchmark_output/0"+basin_id+"_model_output_maurer.txt_val",skip=0)
+
+            dict_merged = {}
+            #
+            # sac_sma simulated and observed streamflow
+
+            # derive KGE and NSE
+            dict_merged['kge_sac_sma_val']  = kge(sac_sma_data[:,10],sac_sma_data[:,9])
+            dict_merged['nse_sac_sma_val']  = nse(sac_sma_data[:,10],sac_sma_data[:,9])
+            #
+            # our data for blended model
+            dict_merged['name_our']  = dict_metadata[basin_id]['name']
+            dict_merged['lon_our']   = dict_metadata[basin_id]['lon_gauge_deg']
+            dict_merged['lat_our']   = dict_metadata[basin_id]['lat_gauge_deg']
+            dict_merged['area_our']  = dict_metadata[basin_id]['area_km2']
+            dict_merged['kge_our_val']   = dict_validation[basin_id]['kge']
+            dict_merged['nse_our_val']   = dict_validation[basin_id]['nse']
+
+            merged_data_sac_sma_val[basin_id] = dict_merged
+
+    # our total number of stations:                675
+    # number of calibrated stations in our DB:
+    # print("Overlap V: ",len(merged_data_sac_sma_val.keys()))
+
+    nses_sac_sma_val = np.array([ [merged_data_sac_sma_val[ii]["nse_sac_sma_val"], merged_data_sac_sma_val[ii]["nse_our_val"]] for ii in merged_data_sac_sma_val ])
+    kges_sac_sma_val = np.array([ [merged_data_sac_sma_val[ii]["kge_sac_sma_val"], merged_data_sac_sma_val[ii]["kge_our_val"]] for ii in merged_data_sac_sma_val ])
 
     # -------------------------------------------------------------------------
     # Read HYPE data (calibration only)
@@ -900,7 +998,7 @@ ll = sub.legend(frameon=frameon, ncol=2,
                 labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
                 loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
                 #fontsize = 'x-small')
-
+                
 # -----------------------------------------
 # Scatterplot VIC vs blended (calibration)
 # -----------------------------------------
@@ -1078,7 +1176,187 @@ ll = sub.legend(frameon=frameon, ncol=2,
                 labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
                 loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
                 #fontsize = 'x-small')
-                
+
+
+# -----------------------------------------
+# Scatterplot SAC-SMA vs blended (calibration)
+# -----------------------------------------
+iplot += 1
+
+sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
+
+sub.plot(nses_sac_sma_cal[:,1],nses_sac_sma_cal[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[0],  markerfacecolor='w',  label=str2tex('NSE$_\mathrm{cal}$'))
+sub.plot(kges_sac_sma_cal[:,1],kges_sac_sma_cal[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-1], markerfacecolor='w', label=str2tex('KGE$_\mathrm{cal}$'))
+sub.plot([-1.0,1.0],[-1.0,1.0],linewidth=0.5*lwidth, linestyle='--',color='k')
+
+# axis lables
+# sub.set_xlabel(str2tex('Blended Raven\n(Mai et al., 2020)',usetex=usetex), color='black')
+sub.set_ylabel(str2tex('SAC-SMA\n(Newman et al., 2017)',usetex=usetex), color='black')
+
+
+# limit plot range
+sub.set_xlim([-0.0,1.0])
+sub.set_ylim([-1.0,1.0])
+
+# add label with current number of basins
+sub.text(0.02,0.02,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_sac_sma_cal))+"$",usetex=usetex),rotation=0,horizontalalignment="left", verticalalignment="bottom", transform=sub.transAxes)
+
+# add label with calibration/validation tag
+# sub.text(0.5,0.95,str2tex("Calibration",usetex=usetex),verticalalignment="top",horizontalalignment="center",transform=sub.transAxes)
+
+# legend
+ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
+                labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
+                loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
+                #fontsize = 'x-small')
+
+
+# -----------------------------------------
+# Scatterplot SAC-SMA vs blended (validation)
+# -----------------------------------------
+iplot += 1
+
+sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
+
+sub.plot(nses_sac_sma_val[:,1],nses_sac_sma_val[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[2],  markerfacecolor='w',  label=str2tex('NSE$_\mathrm{val}$'))
+sub.plot(kges_sac_sma_val[:,1],kges_sac_sma_val[:,0],linewidth=0.0*lwidth,marker='o', markersize=3*msize, markeredgewidth=mwidth, markeredgecolor=cc[-3], markerfacecolor='w', label=str2tex('KGE$_\mathrm{val}$'))
+sub.plot([-1.0,1.0],[-1.0,1.0],linewidth=0.5*lwidth, linestyle='--',color='k')
+
+# axis lables
+# sub.set_xlabel(str2tex('Blended Raven\n(Mai et al., 2020)',usetex=usetex), color='black')
+# sub.set_ylabel(str2tex('SAC-SMA\n(Newman et al., 2017)',usetex=usetex), color='black')
+
+
+# limit plot range
+sub.set_xlim([-0.0,1.0])
+sub.set_ylim([-1.0,1.0])
+
+# add label with current number of basins
+sub.text(0.02,0.02,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_sac_sma_val))+"$",usetex=usetex),rotation=0,horizontalalignment="left", verticalalignment="bottom", transform=sub.transAxes)
+
+# add label with calibration/validation tag
+# sub.text(0.5,0.95,str2tex("Validation",usetex=usetex),verticalalignment="top",horizontalalignment="center",transform=sub.transAxes)
+
+# legend
+ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
+                labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
+                loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
+                #fontsize = 'x-small')
+
+
+# -----------------------------------------
+# KDE SAC-SMA vs blended (calibration)
+# -----------------------------------------
+iplot += 1
+
+sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
+
+from   statsmodels.distributions.empirical_distribution import ECDF
+
+ecdf_nse_sac_sma  = ECDF(nses_sac_sma_cal[:,0])
+min_z          = max(-10.0,np.min(nses_sac_sma_cal[:,0]))
+max_z          = np.max(nses_sac_sma_cal[:,0])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+nse_sac_sma_cdf   = ecdf_nse_sac_sma(z_grid)
+linez1         = sub.plot(z_grid, nse_sac_sma_cdf,  color=cc[0], linewidth=lwidth, linestyle="--", label=str2tex("NSE$_\mathrm{cal}^\mathrm{SAC-SMA}$"))
+
+ecdf_nse_raven = ECDF(nses_sac_sma_cal[:,1])
+min_z          = max(-10.0,np.min(nses_sac_sma_cal[:,1]))
+max_z          = np.max(nses_sac_sma_cal[:,1])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+nse_raven_cdf  = ecdf_nse_raven(z_grid)
+linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[0], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$_\mathrm{cal}^\mathrm{Raven}$"))
+
+ecdf_kge_sac_sma  = ECDF(kges_sac_sma_cal[:,0])
+min_z          = max(-10.0,np.min(kges_sac_sma_cal[:,0]))
+max_z          = np.max(kges_sac_sma_cal[:,0])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+kge_sac_sma_cdf   = ecdf_kge_sac_sma(z_grid)
+linez3         = sub.plot(z_grid, kge_sac_sma_cdf,  color=cc[-1], linewidth=lwidth, linestyle="--", label=str2tex("KGE$_\mathrm{cal}^\mathrm{SAC-SMA}$"))
+
+ecdf_kge_raven = ECDF(kges_sac_sma_cal[:,1])
+min_z          = max(-10.0,np.min(kges_sac_sma_cal[:,1]))
+max_z          = np.max(kges_sac_sma_cal[:,1])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+kge_raven_cdf  = ecdf_kge_raven(z_grid)
+linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-1], linewidth=lwidth, linestyle="-",  label=str2tex("KGE$_\mathrm{cal}^\mathrm{Raven}$"))
+
+# limit plot range
+sub.set_xlim([-0.2,1.0])
+# sub.set_ylim([-0.0,1.0])
+
+# axis lables
+#sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
+sub.set_ylabel(str2tex('CDF [-]',usetex=usetex), color='black')
+
+# add label with current number of basins
+# sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_sac_sma_cal))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
+
+# legend
+ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
+                labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
+                loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
+                #fontsize = 'x-small')
+
+# -----------------------------------------
+# KDE SAC-SMA vs blended (validation)
+# -----------------------------------------
+iplot += 1
+
+sub = fig.add_axes(position(nrow,ncol,iplot,hspace=hspace,vspace=vspace)) #, axisbg='none')
+
+from   statsmodels.distributions.empirical_distribution import ECDF
+
+ecdf_nse_sac_sma  = ECDF(nses_sac_sma_val[:,0])
+min_z          = max(-10.0,np.min(nses_sac_sma_val[:,0]))
+max_z          = np.max(nses_sac_sma_val[:,0])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+nse_sac_sma_cdf   = ecdf_nse_sac_sma(z_grid)
+linez1         = sub.plot(z_grid, nse_sac_sma_cdf,  color=cc[2], linewidth=lwidth, linestyle="--", label=str2tex("NSE$_\mathrm{val}^\mathrm{SAC-SMA}$"))
+
+ecdf_nse_raven = ECDF(nses_sac_sma_val[:,1])
+min_z          = max(-10.0,np.min(nses_sac_sma_val[:,1]))
+max_z          = np.max(nses_sac_sma_val[:,1])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+nse_raven_cdf  = ecdf_nse_raven(z_grid)
+linez2         = sub.plot(z_grid, nse_raven_cdf, color=cc[2], linewidth=lwidth, linestyle="-",  label=str2tex("NSE$_\mathrm{val}^\mathrm{Raven}$"))
+
+ecdf_kge_sac_sma  = ECDF(kges_sac_sma_val[:,0])
+min_z          = max(-10.0,np.min(kges_sac_sma_val[:,0]))
+max_z          = np.max(kges_sac_sma_val[:,0])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+kge_sac_sma_cdf   = ecdf_kge_sac_sma(z_grid)
+linez3         = sub.plot(z_grid, kge_sac_sma_cdf,  color=cc[-3], linewidth=lwidth, linestyle="--", label=str2tex("KGE$_\mathrm{val}^\mathrm{SAC-SMA}$"))
+
+ecdf_kge_raven = ECDF(kges_sac_sma_val[:,1])
+min_z          = max(-10.0,np.min(kges_sac_sma_val[:,1]))
+max_z          = np.max(kges_sac_sma_val[:,1])
+z_grid         = np.arange(min_z-0.05*(max_z-min_z), max_z+0.05*(max_z-min_z), 1.1*(max_z-min_z)/10000)
+kge_raven_cdf  = ecdf_kge_raven(z_grid)
+linez4         = sub.plot(z_grid, kge_raven_cdf, color=cc[-3], linewidth=lwidth, linestyle="-",  label=str2tex("KGE$_\mathrm{val}^\mathrm{Raven}$"))
+
+# limit plot range
+sub.set_xlim([-0.2,1.0])
+# sub.set_ylim([-0.0,1.0])
+
+# axis lables
+# sub.set_xlabel(str2tex('Performance metric [-]',usetex=usetex), color='black')
+# sub.set_ylabel(str2tex('CDF [-]',usetex=usetex), color='black')
+
+# add label with current number of basins
+# sub.text(1.1,0.5,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(nses_sac_sma_cal))+"$",usetex=usetex),rotation=90,horizontalalignment="left", verticalalignment="center", transform=sub.transAxes)
+
+# legend
+ll = sub.legend(frameon=frameon, ncol=2,
+                columnspacing=llcspace,
+                labelspacing=llrspace, handletextpad=llhtextpad, handlelength=llhlength,
+                loc='lower center', bbox_to_anchor=(llxbbox,llybbox), scatterpoints=1, numpoints=1)
+                #fontsize = 'x-small')
+
+
 # -----------------------------------------
 # Scatterplot mHM vs blended (calibration)
 # -----------------------------------------
