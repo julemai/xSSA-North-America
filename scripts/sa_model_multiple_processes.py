@@ -45,6 +45,8 @@ import netCDF4 as nc4
 from autostring import astr
 import PieShareDistribution as psd
 from collections import OrderedDict
+from multiprocessing import Pool
+from functools import partial
 
 # force all msgpack serialization and deserialization routines (and other packages that use them) to become numpy-aware
 m.patch()
@@ -557,7 +559,23 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
     # (D) f_A and f_B
     block_a_weights_nested = random_to_weights_to_nested(block_a_weights,noptions)
     # f_a = np.array([ model_function(block_a_paras[iset], block_a_weights_nested[iset], basin_prop, constants=constants, run_id=basin_prop['id']+"_a_set_"+str(iset)) for iset in range(nsets) ])
-    f_a = np.array([ model_function(block_a_paras[iset], block_a_weights_nested[iset], basin_prop, basin_prop['id']+"_a_set"+str(iset), constants=constants) for iset in range(nsets) ])
+
+
+#-- parallel via multiprocessing
+    arg1list=[]
+    for iset in range(nsets):
+        arg1list.append((block_a_paras[iset], block_a_weights_nested[iset], basin_prop, basin_prop['id']+"_a_set"+str(iset)))
+
+    model_function_partial=partial(model_function,constants=constants)
+
+    with Pool(processes=2) as pool:
+        ztest = pool.starmap(model_function_partial, arg1list)
+
+    f_a = np.array(ztest)
+
+#    f_a = np.array([ model_function(block_a_paras[iset], block_a_weights_nested[iset], basin_prop, basin_prop['id']+"_a_set"+str(iset), constants=constants) for iset in range(nsets) ])
+
+
     # print('block_a_paras   = ',block_a_paras)
     # print('block_a_weights = ',block_a_weights)
 
@@ -669,7 +687,26 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
 
     block_b_weights_nested = random_to_weights_to_nested(block_b_weights,noptions)
     # f_b = np.array([ model_function(block_b_paras[iset], block_b_weights_nested[iset], basin_prop, constants=constants, run_id=basin_prop['id']+"_b_set_"+str(iset)) for iset in range(nsets) ])
-    f_b = np.array([ model_function(block_b_paras[iset], block_b_weights_nested[iset], basin_prop, basin_prop['id']+"_b_set"+str(iset), constants=constants) for iset in range(nsets) ])
+
+
+#-- parallel via multiprocessing
+    arg1list=[]
+    for iset in range(nsets):
+        arg1list.append((block_b_paras[iset], block_b_weights_nested[iset], basin_prop, basin_prop['id']+"_b_set"+str(iset)))
+
+    model_function_partial=partial(model_function,constants=constants)
+
+    with Pool(processes=2) as pool:
+        ztest = pool.starmap(model_function_partial, arg1list)
+
+    f_b = np.array(ztest)
+
+#    f_b = np.array([ model_function(block_b_paras[iset], block_b_weights_nested[iset], basin_prop, basin_prop['id']+"_b_set"+str(iset), constants=constants) for iset in range(nsets) ])
+
+
+
+
+
     # print('block_b_paras   = ',block_b_paras)
     # print('block_b_weights = ',block_b_weights)
 
@@ -742,12 +779,28 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
         #                                         basin_prop,
         #                                         constants=constants,
         #                                         run_id=basin_prop['id']+"_c_para_"+str(iicol)+"_set_"+str(iset)) for iset in range(nsets) ])
-        f_c_tmp = np.array([ model_function(block_c_paras[iicol][iset],
-                                                block_c_weights_nested[iicol][iset],
-                                                basin_prop,
-                                                basin_prop['id']+"_c_set"+str(iset),
-                                                constants=constants) for iset in range(nsets) ])
 
+
+
+
+#-- parallel via multiprocessing
+        arg1list=[]
+        for iset in range(nsets):
+            arg1list.append((block_c_paras[iicol][iset], block_c_weights_nested[iicol][iset], basin_prop, basin_prop['id']+"_c_set"+str(iset)))
+
+        model_function_partial=partial(model_function,constants=constants)
+
+        with Pool(processes=2) as pool:
+            ztest = pool.starmap(model_function_partial, arg1list)
+
+        f_c_tmp = np.array(ztest)
+
+#        f_c_tmp = np.array([ model_function(block_c_paras[iicol][iset],
+#                                                block_c_weights_nested[iicol][iset],
+#                                                basin_prop,
+#                                                basin_prop['id']+"_c_set"+str(iset),
+#                                                constants=constants) for iset in range(nsets) ])
+#
         # convert list of dicts into dict of lists:
         #       [{'result_1':1.0, 'result_2:2.0'}, {'result_1':3.0, 'result_2:4.0'}, ...] --> [{'result_1':[1.0,3.0,...],'result_2':[2.0,4.0,...]}]
         # keys = f_c_tmp[0].keys()
@@ -889,11 +942,26 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
         #                                         basin_prop,
         #                                         constants=constants,
         #                                         run_id=basin_prop['id']+"_c_para_"+str(iicol)+"_set_"+str(iset)) for iset in range(nsets) ])
-        f_c_tmp = np.array([ model_function(block_c_paras[iicol][iset],
-                                                block_c_weights_nested[iicol][iset],
-                                                basin_prop,
-                                                basin_prop['id']+"_c_set"+str(iset),
-                                                constants=constants) for iset in range(nsets) ])
+
+
+#-- parallel via multiprocessing
+        arg1list=[]
+        for iset in range(nsets):
+            arg1list.append((block_c_paras[iicol][iset], block_c_weights_nested[iicol][iset], basin_prop, basin_prop['id']+"_c_set"+str(iset)))
+
+        model_function_partial=partial(model_function,constants=constants)
+
+        with Pool(processes=2) as pool:
+            ztest = pool.starmap(model_function_partial, arg1list)
+
+        f_c_tmp = np.array(ztest)
+
+
+#        f_c_tmp = np.array([ model_function(block_c_paras[iicol][iset],
+#                                                block_c_weights_nested[iicol][iset],
+#                                                basin_prop,
+#                                                basin_prop['id']+"_c_set"+str(iset),
+#                                                constants=constants) for iset in range(nsets) ])
 
         # convert list of dicts into dict of lists:
         #       [{'result_1':1.0, 'result_2:2.0'}, {'result_1':3.0, 'result_2:4.0'}, ...] --> [{'result_1':[1.0,3.0,...],'result_2':[2.0,4.0,...]}]
@@ -1038,11 +1106,26 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
         #                                         basin_prop,
         #                                         constants=constants,
         #                                         run_id=basin_prop['id']+"_c_para_"+str(iicol)+"_set_"+str(iset)) for iset in range(nsets) ])
-        f_c_tmp = np.array([ model_function(block_c_paras[iicol][iset],
-                                                block_c_weights_nested[iicol][iset],
-                                                basin_prop,
-                                                basin_prop['id']+"_c_set"+str(iset),
-                                                constants=constants) for iset in range(nsets) ])
+
+
+#-- parallel via multiprocessing
+        arg1list=[]
+        for iset in range(nsets):
+            arg1list.append((block_c_paras[iicol][iset], block_c_weights_nested[iicol][iset], basin_prop, basin_prop['id']+"_c_set"+str(iset)))
+
+        model_function_partial=partial(model_function,constants=constants)
+
+        with Pool(processes=2) as pool:
+            ztest = pool.starmap(model_function_partial, arg1list)
+
+        f_c_tmp = np.array(ztest)
+        
+
+#        f_c_tmp = np.array([ model_function(block_c_paras[iicol][iset],
+#                                                block_c_weights_nested[iicol][iset],
+#                                                basin_prop,
+#                                                basin_prop['id']+"_c_set"+str(iset),
+#                                                constants=constants) for iset in range(nsets) ])
 
         # convert list of dicts into dict of lists:
         #       [{'result_1':1.0, 'result_2:2.0'}, {'result_1':3.0, 'result_2:4.0'}, ...] --> [{'result_1':[1.0,3.0,...],'result_2':[2.0,4.0,...]}]
