@@ -202,7 +202,7 @@ if __name__ == '__main__':
             raise ValueError('Basin ID not found in '+file_gauge_info)
     
 
-        def model_function_raven(paras, weights, basin_prop, constants=None, run_id=None, tmp_folder=tmp_folder):
+        def model_function_raven(paras, weights, basin_prop, run_id, constants=None, tmp_folder=tmp_folder):
             # input:
             #     paras      ... list of model parameters scaled to their range;
             #                    values for all N model parameters have to be provided
