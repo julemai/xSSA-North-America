@@ -65,6 +65,21 @@ History
 Written,  JM, Jun 2019
 """
 
+def number_of_processes():
+
+# submit with, for example: --nodes=1 --ntasks=1 --cpus-per-task=4
+    if "SLURM_JOB_ID" in os.environ:
+        assert os.environ["SLURM_JOB_NUM_NODES"]=="1","Error, SLURM job should only be using 1 node for multiprocessing"
+        numprocs=int(os.environ["SLURM_CPUS_ON_NODE"])
+        print("running as slurm job, using "+str(numprocs)+" processes for multiprocessing")
+        return numprocs 
+
+# running with 1 process, no parallelisation
+    else:
+        print("using 1 process only")
+        return 1 
+
+
 def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, basin_prop, constants=None, nsets=None, budget=None,
                                     save_pkl=None,
                                     save_json=None,
@@ -568,7 +583,7 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
 
     model_function_partial=partial(model_function,constants=constants)
 
-    with Pool(processes=2) as pool:
+    with Pool(processes=number_of_processes()) as pool:
         ztest = pool.starmap(model_function_partial, arg1list)
 
     f_a = np.array(ztest)
@@ -696,7 +711,7 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
 
     model_function_partial=partial(model_function,constants=constants)
 
-    with Pool(processes=2) as pool:
+    with Pool(processes=number_of_processes()) as pool:
         ztest = pool.starmap(model_function_partial, arg1list)
 
     f_b = np.array(ztest)
@@ -790,7 +805,7 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
 
         model_function_partial=partial(model_function,constants=constants)
 
-        with Pool(processes=2) as pool:
+        with Pool(processes=number_of_processes()) as pool:
             ztest = pool.starmap(model_function_partial, arg1list)
 
         f_c_tmp = np.array(ztest)
@@ -951,7 +966,7 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
 
         model_function_partial=partial(model_function,constants=constants)
 
-        with Pool(processes=2) as pool:
+        with Pool(processes=number_of_processes()) as pool:
             ztest = pool.starmap(model_function_partial, arg1list)
 
         f_c_tmp = np.array(ztest)
@@ -1115,7 +1130,7 @@ def sa_model_multiple_processes(paras_per_option, para_ranges, model_function, b
 
         model_function_partial=partial(model_function,constants=constants)
 
-        with Pool(processes=2) as pool:
+        with Pool(processes=number_of_processes()) as pool:
             ztest = pool.starmap(model_function_partial, arg1list)
 
         f_c_tmp = np.array(ztest)
