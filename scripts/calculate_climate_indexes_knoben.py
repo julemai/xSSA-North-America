@@ -111,6 +111,7 @@ if __name__ == '__main__':
     sys.path.append(dir_path+'/lib')
 
     import numpy    as np
+    import pandas   as pd
     import datetime as datetime
     
     from   autostring           import astr                    # in lib/
@@ -124,6 +125,10 @@ if __name__ == '__main__':
         file_climate_indexes = outfile
         ff_clim = open(file_climate_indexes, "w")
         ff_clim.write("basin_id; aridity I_m; seasonality I_m,r; fraction precipitation as snow f_S; red; green; blue \n")
+
+        file_annual_forcing_stats = '.'.join(outfile.split('.')[:-1])+'_forcings.'+outfile.split('.')[-1]
+        ff_forc = open(file_annual_forcing_stats, "w")
+        ff_forc.write("basin_id; annual_sum_prec_mm; annual_ave_temp_degC; annual_sum_pet_mm \n")
     
     climate_indexes = {}
     for basin_id in basin_ids:
@@ -199,6 +204,26 @@ if __name__ == '__main__':
         lat = np.ones(ntime) * basin_prop['lat_deg']                             # make latitudes same shape as doy and temp
         pet = pet_oudin(tave, lat, doy)
 
+        # ---------------------------------------
+        # derive annual forcings
+        # put all in dataframe to make averaging easier
+        data = np.transpose( np.array([ precip, tave, pet]) )
+        df = pd.DataFrame(data, columns = ['precip', 'tave', 'pet'], index=pd.DatetimeIndex(ttime), dtype=float)
+
+        # annual sum of precip
+        precip_total_annual     = df.precip.resample("Y").agg(['sum'])                                  # 61 values
+        precip_total_annual_ave = precip_total_annual.mean()                                            #  1 value
+
+        # average annual temperature
+        tave_ave_annual     = df.tave.resample("Y").agg(['mean'])                                       # 61 values
+        tave_ave_annual_ave = tave_ave_annual.mean()                                                    #  1 value
+
+        # average sum of pet
+        pet_total_annual     = df.pet.resample("Y").agg(['sum'])                                        # 61 values
+        pet_total_annual_ave = pet_total_annual.mean()                                                  #  1 value
+
+        # ---------------------------------------
+
         if snow_calc == "raven":
             # derive snow amount as RAVEN does in ":RainSnowFraction RAINSNOW_DINGMAN"
             #    uses global parameters: G.rainsnow_temp=0.15;
@@ -245,9 +270,17 @@ if __name__ == '__main__':
                           astr(climate_index['color']['red'],prec=4)+"; "+
                           astr(climate_index['color']['green'],prec=4)+"; "+
                           astr(climate_index['color']['blue'],prec=4)+"\n")
+
+            ff_forc.write(    basin_id+"; "+
+                                  astr(precip_total_annual_ave[0],prec=4)+"; "+
+                                  astr(tave_ave_annual_ave[0],prec=4)+"; "+
+                                  astr(pet_total_annual_ave[0],prec=4)+"; "+"\n")
         else:
             print(climate_index)
 
     if not( outfile is None):
         ff_clim.close()
         print("Wrote: "+file_climate_indexes)
+
+        ff_forc.close()
+        print("Wrote: "+file_annual_forcing_stats)
