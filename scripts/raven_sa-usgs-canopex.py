@@ -44,7 +44,7 @@ if __name__ == '__main__':
     import numpy as np
 
     outtype     = 'nc'
-    nsets       = 100                # number of Sobol sequences
+    nsets       = 2                  # number of Sobol sequences
     nboot       = 1                  # Set to 1 for single run of SI and STI calculation
     basin_id    = None
     tmp_folder  = "/tmp/juletest/"   # temporary folder to run model
