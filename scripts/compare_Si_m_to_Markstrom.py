@@ -100,11 +100,13 @@ if __name__ == '__main__':
     import scipy.optimize as opt
     import time
     import glob           as glob
+    import zipfile
     from scipy.stats import spearmanr
 
     t1 = time.time()
     
     from   fread                import fread                   # in lib/
+    from   sread                import sread                   # in lib/
     from   fsread               import fsread                  # in lib/
     from   autostring           import astr                    # in lib/
     from   pet_oudin            import pet_oudin               # in lib/
@@ -153,27 +155,45 @@ if __name__ == '__main__':
     # -------------------------------------------------------------------------
     # Read sensitivity results of (all) parameters
     # -------------------------------------------------------------------------
+    print('')
+    print('Reading xSSA sensitivity results ...')
     
-    sobol_indexes = {}
-    variable      = 'Q'
-    for ibasin_id,basin_id in enumerate(basin_ids):
+    filename = "sa_for_markstrom_xSSA.dat"
+    if os.path.exists(filename):
 
-        print("Read sensitivities for: ",basin_id)
+        sobol_indexes_dat = sread(filename, skip=1)
+        sobol_indexes = {}
+        for ss in sobol_indexes_dat:
+            sobol_indexes[ss[0]] = np.float(ss[1])
 
-        nc4_file = "../data_out/"+basin_id+"/results_nsets1000.nc"
-        nc4_in = nc4.Dataset(nc4_file, "r", format="NETCDF4")
+    else:
+        sobol_indexes = {}
+        variable      = 'Q'
+        for ibasin_id,basin_id in enumerate(basin_ids):
 
-        # ---------------------
-        # sensitivity indexes: sobol_indexes['paras']['msi'][variable]
-        # ---------------------
-        analysis_type    = 'paras'       # 'paras', 'process_options', 'processes'
-        sensi_index_type = 'msi'         # 'msi', 'msti', 'wsi', 'wsti' 
+            print("Read sensitivities for: ",basin_id)
 
-        ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
-        tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
-        sobol_indexes[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
+            nc4_file = "../data_out/"+basin_id+"/results_nsets1000.nc"
+            nc4_in = nc4.Dataset(nc4_file, "r", format="NETCDF4")
 
-        nc4_in.close()
+            # ---------------------
+            # sensitivity indexes: sobol_indexes['paras']['msi'][variable]
+            # ---------------------
+            analysis_type    = 'paras'       # 'paras', 'process_options', 'processes'
+            sensi_index_type = 'msi'         # 'msi', 'msti', 'wsi', 'wsti' 
+
+            ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
+            tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
+            sobol_indexes[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
+
+            nc4_in.close()
+
+        ff = open(filename, 'w')
+        ff.write('basin_id,sum(msi_paras)\n')
+        for ibasin in sobol_indexes:
+            string = ibasin+','+astr(sobol_indexes[ibasin],prec=6)+'\n'
+            ff.write(string)
+        ff.close()
 
     min_sobol_indexes = np.min([ sobol_indexes[kk] for kk in sobol_indexes.keys() ] )
     max_sobol_indexes = np.max([ sobol_indexes[kk] for kk in sobol_indexes.keys() ] )
@@ -240,79 +260,134 @@ if __name__ == '__main__':
     # Read PRMS results for all HRUs for each basin and average over all PRMS 35 variables over all HRUs for
     # file: ../data_supp/markstrom_HESS_2016/sensScores/<region>/hru_outflowMeanSens.csv
     #       lines: hru_id_loc for this <region>
-    # -------------------------------------------------------------------------
-    print('')
-    print('Starting with aggregating sensitvities of HRUs to basins ...')
+    # -------------------------------------------------------------------------    
+    filename = "sa_for_markstrom_FAST.dat"
+    if os.path.exists(filename):
 
-    fast_indexes = {}
-    for ibasin_id,basin_id in enumerate(basin_ids):
+        print('')
+        print('Reading FAST indexes from file ...')
 
-        # read shape of our basin
-        sf = shapefile.Reader("../data_in/data_obs/"+basin_id+"/shape_"+basin_id+"_coarse/shape_"+basin_id+"_coarse")
+        fast_indexes_dat = sread(filename, skip=1)
+        fast_indexes = {}
+        for ss in fast_indexes_dat:
+            fast_indexes[ss[0]] = np.float(ss[1])
 
-        # get points
-        geometry_basin = sf.shape(0).__geo_interface__
+    else:
 
-        # get bbox
-        bbox = sf.shape(0).bbox
+        print('')
+        print('Deriving FAST indexes ...')
+        
+        fast_indexes = {}
+        for ibasin_id,basin_id in enumerate(basin_ids):
 
-        # find all HRUs that intersect with this shape
-        p_xSSA = Polygon(geometry_basin['coordinates'][0])
+            print("   ",basin_id)
 
-        # check if an intersecting HRU will be found
-        no_hru = True
-        area_all_hru = 0.0
-        sensi = 0.0
-
-        for iHRU in all_hru_shapes: #range(100): #range(nshapes):
-
-            area_this_hru = 0.0
-            
-            if all_hru_shapes[iHRU]['geometry']['type'] == 'MultiPolygon':
-                nmultis = len(all_hru_shapes[iHRU]['geometry']['coordinates'])
-                p_PRMS = []
-                for imulti in range(nmultis):
-                    p_PRMS.append( Polygon(all_hru_shapes[iHRU]['geometry']['coordinates'][imulti][0]) )
-            elif all_hru_shapes[iHRU]['geometry']['type'] == 'Polygon':
-                nmultis = 1
-                p_PRMS = [ Polygon(all_hru_shapes[iHRU]['geometry']['coordinates'][0]) ]
+            # read shape of our basin
+            if os.path.exists("../data_in/data_obs/"+basin_id+"/shape_"+basin_id+"_coarse/shape_"+basin_id+"_coarse.shp"):
+                sf = shapefile.Reader("../data_in/data_obs/"+basin_id+"/shape_"+basin_id+"_coarse/shape_"+basin_id+"_coarse")
+            elif os.path.exists("../data_in/data_obs/"+basin_id+"/shape_"+basin_id+"_coarse.zip"):
+                # unzip (puts files to current location)
+                zip = zipfile.ZipFile("../data_in/data_obs/"+basin_id+"/shape_"+basin_id+"_coarse.zip")
+                zip.extractall()
+                # read
+                sf = shapefile.Reader("shape_"+basin_id+"_coarse")
+                # remove files 
+                os.remove("shape_"+basin_id+"_coarse.dbf")
+                os.remove("shape_"+basin_id+"_coarse.prj")
+                os.remove("shape_"+basin_id+"_coarse.shp")
+                os.remove("shape_"+basin_id+"_coarse.shx")
             else:
-                print('iHRU = ',iHRU,'    --> unknown geometry type')
+                print("../data_in/data_obs/"+basin_id+"/shape_"+basin_id+"_coarse")
+                raise ValueError("Can not find shapefile.")
 
-            for imulti in range(nmultis):
-                if (p_xSSA.intersects(p_PRMS[imulti])):
+            # get points
+            geometry_basin = sf.shape(0).__geo_interface__
 
-                    no_hru = False
-                    p_intersect = p_xSSA.intersection(p_PRMS[imulti])
-                    # print(p_intersect) 
-                    print('Basin: '+basin_id+' ---> ', p_intersect.area / p_PRMS[imulti].area * 100., '%   of HRU ',iHRU, '(part ',imulti+1,'/',nmultis,')')
+            # get bbox
+            bbox = sf.shape(0).bbox
 
-                    # count areas that we account for in total
-                    area_all_hru += p_intersect.area
+            # find all HRUs that intersect with this shape
+            p_xSSA = Polygon(geometry_basin['coordinates'][0])
+            if not(p_xSSA.is_valid):
+                # if for some reason this polygon is not valid, try buffer trick
+                p_xSSA = p_xSSA.buffer(0.0)
 
-                    # count areas we account for in this HRU (only different if HRU is split into multiple pieces)
-                    area_this_hru += p_intersect.area
+            # check if an intersecting HRU will be found
+            no_hru = True
+            area_all_hru = 0.0
+            sensi = 0.0
 
-            # read in PMRS sensi results
-            this_hru_region = all_hru_shapes[iHRU]['region']
-            this_hru_id_loc = all_hru_shapes[iHRU]['hru_id_loc']
-            sensi_from_file = np.sum(markstrom_sensi[this_hru_region][this_hru_id_loc-1])   # -1 because numberung starts with 1 not 0
+            for iHRU in all_hru_shapes: #range(100): #range(nshapes):
 
-            # scale them with size of this HRU compared to whole basin size
-            sensi += sensi_from_file * area_this_hru/p_xSSA.area
+                area_this_hru = 0.0
+                
+                if all_hru_shapes[iHRU]['geometry']['type'] == 'MultiPolygon':
+                    nmultis = len(all_hru_shapes[iHRU]['geometry']['coordinates'])
+                    p_PRMS = []
+                    for imulti in range(nmultis):
+                        p_PRMS.append( Polygon(all_hru_shapes[iHRU]['geometry']['coordinates'][imulti][0]) )
+                elif all_hru_shapes[iHRU]['geometry']['type'] == 'Polygon':
+                    nmultis = 1
+                    p_PRMS = [ Polygon(all_hru_shapes[iHRU]['geometry']['coordinates'][0]) ]
+                else:
+                    print('iHRU = ',iHRU,'    --> unknown geometry type')
 
-        if no_hru:
-            sensi = -9999.0
-        else:
-            print("Area basin:        ", p_xSSA.area)
-            print("Area partial HRUs: ", area_all_hru)
-            print("Error:             ", np.abs(p_xSSA.area-area_all_hru)/p_xSSA.area * 100.,"%")
+                for imulti in range(nmultis):
 
-        # sensi
-        print('Sensi for basin ',basin_id,' = ',sensi)
-        fast_indexes[basin_id] = sensi
+                    if not(p_PRMS[imulti].is_valid):
+                        # if for some reason this polygon is not valid, try buffer trick
+                        p_PRMS[imulti] = p_PRMS[imulti].buffer(0.0)
+                        
+                    if (p_xSSA.intersects(p_PRMS[imulti])):
 
-    stop
+                        no_hru = False
+
+                        # this fails:
+                        # 06601200
+                        # TopologyException: Input geom 0 is invalid: Self-intersection at or near point -109.62697453774797 49.520173297722323 at -109.62697453774797 49.520173297722323
+                        p_intersect = p_xSSA.intersection(p_PRMS[imulti])
+                        # print(p_intersect) 
+                        # print('Basin: '+basin_id+' ---> ', p_intersect.area / p_PRMS[imulti].area * 100., '%   of HRU ',iHRU, '(part ',imulti+1,'/',nmultis,')')
+
+                        # count areas that we account for in total
+                        area_all_hru += p_intersect.area
+
+                        # count areas we account for in this HRU (only different if HRU is split into multiple pieces)
+                        area_this_hru += p_intersect.area
+
+                # read in PMRS sensi results
+                this_hru_region = all_hru_shapes[iHRU]['region']
+                this_hru_id_loc = all_hru_shapes[iHRU]['hru_id_loc']
+                sensi_from_file = np.sum(markstrom_sensi[this_hru_region][this_hru_id_loc-1])   # -1 because numberung starts with 1 not 0
+
+                # scale them with size of this HRU compared to whole basin size
+                sensi += sensi_from_file * area_this_hru    # should be devided by "p_xSSA.area"
+                #                                           # but basins at border are not completely covered by Markstrom
+                #                                           # so do at the end division by area_all_hru
+
+            if no_hru:
+                sensi = -9999.0
+                area_all_hru = 1.0
+            # else:
+                # print("Area basin:        ", p_xSSA.area)
+                # print("Area partial HRUs: ", area_all_hru)
+                # print("Area Error:        ", np.abs(p_xSSA.area-area_all_hru)/p_xSSA.area * 100.,"%")
+
+            # sensi
+            fast_indexes[basin_id] = sensi / area_all_hru   # must be normalized by area
+            #                                               # (should be  "p_xSSA.area"
+            #                                               # but take "area_all_hru" for only partial basins)
+            print('basin: ',basin_id,' FAST = ',fast_indexes[basin_id], '    xSSA = ',sobol_indexes[basin_id])
+
+        # -------------------------------------------------------------------------
+        # write those results to file
+        # -------------------------------------------------------------------------
+        ff = open(filename, 'w')
+        ff.write('basin_id,sum(fast_paras)\n')
+        for ibasin in fast_indexes:
+            string = ibasin+','+astr(fast_indexes[ibasin],prec=6)+'\n'
+            ff.write(string)
+        ff.close()
         
 # -------------------------------------------------------------------------
 # Customize plots
@@ -629,7 +704,7 @@ if True:
         icolor = 'red'
         max_sum_msi = 1.0
         min_sum_msi = 0.0
-        isum_msi = sobol_indexes[basin_id] * 0.0             # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ADJUST WHEN I GET MARKSTROM DATA
+        isum_msi = fast_indexes[basin_id]       
         if isum_msi < min_sum_msi:
             icolor = cmap(0.0)
         elif isum_msi > max_sum_msi:
