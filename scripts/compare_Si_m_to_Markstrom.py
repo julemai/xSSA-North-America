@@ -38,9 +38,9 @@ dotitle   = True  # True: add catchment titles to subpanels
 """
 Plots sum of Si_mean of all parameters for each basin on a map. To compare to Figure 2 (panel for Mean of Runoff) in:
 
-Markstrom, S. L., Hay, L. E., & Clark, M. P. (2016). 
-Towards simplification of hydrologic modeling: identification of dominant processes. 
-Hydrology and Earth System Sciences, 20(11), 4655-4671. 
+Markstrom, S. L., Hay, L. E., & Clark, M. P. (2016).
+Towards simplification of hydrologic modeling: identification of dominant processes.
+Hydrology and Earth System Sciences, 20(11), 4655-4671.
 http://doi.org/10.5194/hess-20-4655-2016
 
 History
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     pngbase              = ''
     pdffile              = ''
     usetex               = False
-    
+
     parser   = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                       description='''Plot sum of Si_mean of all parameters on map.''')
     parser.add_argument('-g', '--pngbase', action='store',
@@ -84,13 +84,13 @@ if __name__ == '__main__':
 
     # -------------------------------------------------------------------------
     # Function definition - if function
-    #   
+    #
 
     # -----------------------
     # add subolder scripts/lib to search path
     # -----------------------
     import sys
-    import os 
+    import os
     dir_path = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(dir_path+'/lib')
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     from scipy.stats import spearmanr
 
     t1 = time.time()
-    
+
     from   fread                import fread                   # in lib/
     from   sread                import sread                   # in lib/
     from   fsread               import fsread                  # in lib/
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     meta_float, meta_string = fsread("../data_in/basin_metadata/basin_physical_characteristics.txt",skip=1,separator=';',cname=["lat","lon","area_km2","elevation_m","slope_deg","forest_frac","lat_gauge_deg","lon_gauge_deg"],sname=["basin_id","basin_name"])
 
     properties = ["lat","lon","area_km2","elevation_m","slope_deg","forest_frac","lat_gauge_deg","lon_gauge_deg"]
-    
+
     dict_properties = {}
     for ibasin in range(len(meta_float)):
         dict_basin = {}
@@ -149,7 +149,7 @@ if __name__ == '__main__':
         dict_basin[properties[5]] = meta_float[ibasin][5]
         dict_basin[properties[6]] = meta_float[ibasin][6]
         dict_basin[properties[7]] = meta_float[ibasin][7]
-    
+
         dict_properties[meta_string[ibasin][0]] = dict_basin
 
     # -------------------------------------------------------------------------
@@ -157,7 +157,7 @@ if __name__ == '__main__':
     # -------------------------------------------------------------------------
     print('')
     print('Reading xSSA sensitivity results ...')
-    
+
     filename = "sa_for_markstrom_xSSA.dat"
     if os.path.exists(filename):
 
@@ -180,7 +180,7 @@ if __name__ == '__main__':
             # sensitivity indexes: sobol_indexes['paras']['msi'][variable]
             # ---------------------
             analysis_type    = 'paras'       # 'paras', 'process_options', 'processes'
-            sensi_index_type = 'msi'         # 'msi', 'msti', 'wsi', 'wsti' 
+            sensi_index_type = 'msi'         # 'msi', 'msti', 'wsi', 'wsti'
 
             ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
             tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     print('Reading Markstrom HRU shapes ...')
     import shapefile
     from shapely.geometry import Polygon, MultiPolygon
-    
+
     sf = shapefile.Reader("../data_supp/markstrom_HESS_2016/hrusAllConus/hrusAllConusDd")
     #myshp = open("../data_supp/markstrom_HESS_2016/hrusAllConus/hrusAllConusDd.shp", "rb")
     #mydbf = open("../data_supp/markstrom_HESS_2016/hrusAllConus/hrusAllConusDd.dbf", "rb")
@@ -223,7 +223,7 @@ if __name__ == '__main__':
     #       ['hru_id', 'N', 9, 0],         # hru_id overall (unique throughout whole dataset; starts with 1)
     #       ['region', 'C', 50, 0]]        # regions 1-18: 1-9, then 10 lower, 10 upper, then 11-18
     #                                      # The fact that region 10 (Missouri River Basin) is split is a real pain.
-    #                                      # USGS didn't make this scheme up, but it follows the NHD plus region naming convention. 
+    #                                      # USGS didn't make this scheme up, but it follows the NHD plus region naming convention.
     fields = ['hru_id_loc','hru_id','region']
 
     all_hru_shapes = {}
@@ -242,7 +242,7 @@ if __name__ == '__main__':
         # tmp_dict['geometry']   = shapes[ishape].points
         tmp_dict['geometry']   = sf.shape(ishape).__geo_interface__
         tmp_dict['bbox']       = shapes[ishape].bbox
-        
+
         all_hru_shapes[hru_id] = tmp_dict
 
     # -------------------------------------------------------------------------
@@ -260,7 +260,7 @@ if __name__ == '__main__':
     # Read PRMS results for all HRUs for each basin and average over all PRMS 35 variables over all HRUs for
     # file: ../data_supp/markstrom_HESS_2016/sensScores/<region>/hru_outflowMeanSens.csv
     #       lines: hru_id_loc for this <region>
-    # -------------------------------------------------------------------------    
+    # -------------------------------------------------------------------------
     filename = "sa_for_markstrom_FAST.dat"
     if os.path.exists(filename):
 
@@ -275,12 +275,18 @@ if __name__ == '__main__':
     else:
 
         print('')
-        print('Deriving FAST indexes ...')
-        
-        fast_indexes = {}
-        for ibasin_id,basin_id in enumerate(basin_ids):
+        print('Deriving FAST indexes for '+str(len(basin_ids))+' basins ...')
 
-            print("   ",basin_id)
+        # -------------------------------------------------------------------------
+        # write those results to file
+        # -------------------------------------------------------------------------
+        ff = open(filename, 'w')
+        ff.write('basin_id,sum(fast_paras),sum(xSSA_sobol_indexes["paras"]["msi"]["Q"])\n')
+
+        fast_indexes = {}
+        for ibasin_id,basin_id in enumerate(basin_ids[0:4]):
+
+            # print("   ",basin_id)
 
             # read shape of our basin
             if os.path.exists("../data_in/data_obs/"+basin_id+"/shape_"+basin_id+"_coarse/shape_"+basin_id+"_coarse.shp"):
@@ -291,7 +297,7 @@ if __name__ == '__main__':
                 zip.extractall()
                 # read
                 sf = shapefile.Reader("shape_"+basin_id+"_coarse")
-                # remove files 
+                # remove files
                 os.remove("shape_"+basin_id+"_coarse.dbf")
                 os.remove("shape_"+basin_id+"_coarse.prj")
                 os.remove("shape_"+basin_id+"_coarse.shp")
@@ -320,7 +326,7 @@ if __name__ == '__main__':
             for iHRU in all_hru_shapes: #range(100): #range(nshapes):
 
                 area_this_hru = 0.0
-                
+
                 if all_hru_shapes[iHRU]['geometry']['type'] == 'MultiPolygon':
                     nmultis = len(all_hru_shapes[iHRU]['geometry']['coordinates'])
                     p_PRMS = []
@@ -337,7 +343,7 @@ if __name__ == '__main__':
                     if not(p_PRMS[imulti].is_valid):
                         # if for some reason this polygon is not valid, try buffer trick
                         p_PRMS[imulti] = p_PRMS[imulti].buffer(0.0)
-                        
+
                     if (p_xSSA.intersects(p_PRMS[imulti])):
 
                         no_hru = False
@@ -346,7 +352,7 @@ if __name__ == '__main__':
                         # 06601200
                         # TopologyException: Input geom 0 is invalid: Self-intersection at or near point -109.62697453774797 49.520173297722323 at -109.62697453774797 49.520173297722323
                         p_intersect = p_xSSA.intersection(p_PRMS[imulti])
-                        # print(p_intersect) 
+                        # print(p_intersect)
                         # print('Basin: '+basin_id+' ---> ', p_intersect.area / p_PRMS[imulti].area * 100., '%   of HRU ',iHRU, '(part ',imulti+1,'/',nmultis,')')
 
                         # count areas that we account for in total
@@ -379,16 +385,13 @@ if __name__ == '__main__':
             #                                               # but take "area_all_hru" for only partial basins)
             print('basin: ',basin_id,' FAST = ',fast_indexes[basin_id], '    xSSA = ',sobol_indexes[basin_id])
 
-        # -------------------------------------------------------------------------
-        # write those results to file
-        # -------------------------------------------------------------------------
-        ff = open(filename, 'w')
-        ff.write('basin_id,sum(fast_paras)\n')
-        for ibasin in fast_indexes:
-            string = ibasin+','+astr(fast_indexes[ibasin],prec=6)+'\n'
+            # write to file
+            string = basin_id+','+astr(fast_indexes[basin_id],prec=6)+','+astr(sobol_indexes[basin_id],prec=6)+'\n'
             ff.write(string)
+
+        # close output file
         ff.close()
-        
+
 # -------------------------------------------------------------------------
 # Customize plots
 #
@@ -400,7 +403,7 @@ if (pdffile == ''):
         outtype = 'png'
 else:
     outtype = 'pdf'
-    
+
 # Main plot
 dummy_rows  = 1
 nrow        = 2    # # of rows of subplots per figure
@@ -533,7 +536,7 @@ else:
     c  = color.get_brewer('rdylbu11', rgb=True)
     tmp = c.pop(5)   # rm yellow
     np.random.shuffle(c)
-    
+
     #c.insert(2,c[2]) # same colour for both soil moistures
     ocean_color = (151/256., 183/256., 224/256.)
     # ocean_color = color.get_brewer('accent5', rgb=True)[-1]
@@ -562,7 +565,7 @@ def find_side(ls, side):
     """
     Given a shapely LineString which is assumed to be rectangular, return the
     line corresponding to a given side of the rectangle.
-    
+
     """
     minx, miny, maxx, maxy = ls.bounds
     points = {'left': [(minx, miny), (minx, maxy)],
@@ -580,7 +583,7 @@ def lambert_xticks(ax, ticks):
     ax.xaxis.tick_bottom()
     ax.set_xticks(xticks)
     ax.set_xticklabels([ax.xaxis.get_major_formatter()(xtick) for xtick in xticklabels])
-    
+
 
 def lambert_yticks(ax, ticks):
     """Draw ricks on the left y-axis of a Lamber Conformal projection."""
@@ -609,7 +612,7 @@ def _lambert_ticks(ax, ticks, tick_location, line_constructor, tick_extractor):
         else:
             tick = tick_extractor(locs.xy)
         _ticks.append(tick[0])
-    # Remove ticks that aren't visible:    
+    # Remove ticks that aren't visible:
     ticklabels = copy(ticks)
     while True:
         try:
@@ -620,7 +623,7 @@ def _lambert_ticks(ax, ticks, tick_location, line_constructor, tick_extractor):
         ticklabels.pop(index)
     return _ticks, ticklabels
 
-    
+
 # -------------------------------------------------------------------------
 # Plot
 #
@@ -653,7 +656,7 @@ if True:
     # ----------------------------------------------------------------
     # (A) MARKSTROM MEAN RUNOFF (FIG 2)
     # ----------------------------------------------------------------
-    
+
     #     [left, bottom, width, height]
     pos = [0.1,0.8,0.45,0.15]
     sub = fig.add_axes(pos, projection=ccrs.LambertConformal())
@@ -678,7 +681,7 @@ if True:
     sub.gridlines(xlocs=xticks, ylocs=yticks,linewidth=0.1, color='gray', alpha=0.5, linestyle='-')
 
     # Label the end-points of the gridlines using the custom tick makers:
-    sub.xaxis.set_major_formatter(LONGITUDE_FORMATTER) 
+    sub.xaxis.set_major_formatter(LONGITUDE_FORMATTER)
     sub.yaxis.set_major_formatter(LATITUDE_FORMATTER)
     lambert_xticks(sub, xticks)
     lambert_yticks(sub, yticks)
@@ -692,7 +695,7 @@ if True:
     # add label with current number of basins
     # sub.text(0.05,0.05,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(basin_ids))+"$",usetex=usetex),transform=sub.transAxes)
 
-    # adjust frame linewidth 
+    # adjust frame linewidth
     sub.outline_patch.set_linewidth(lwidth)
 
     coord_catch   = []
@@ -704,20 +707,20 @@ if True:
         icolor = 'red'
         max_sum_msi = 1.0
         min_sum_msi = 0.0
-        isum_msi = fast_indexes[basin_id]       
+        isum_msi = fast_indexes[basin_id]
         if isum_msi < min_sum_msi:
             icolor = cmap(0.0)
         elif isum_msi > max_sum_msi:
             icolor = cmap(1.0)
         else:
-            icolor = cmap((isum_msi-min_sum_msi)/(max_sum_msi-min_sum_msi))        
+            icolor = cmap((isum_msi-min_sum_msi)/(max_sum_msi-min_sum_msi))
 
         # if shapefile exists --> plot largest of the shapes
         if ( os.path.exists(shapefilename) ):
             # [lon lat]
             coords = fread(shapefilename, skip=1, separator=';')
             coord_catch.append(coords)
-        
+
             # add catchment shape to plot
             nan_idx = np.where(np.isnan(coords[:,0]))[0]                                  # nan's, e.g., array([    0,     6, 16896, 16898])
             nshapes = len(nan_idx)-1                                                      #        e.g., 3
@@ -760,16 +763,16 @@ if True:
             # print("   --> lat range = [",yymin,",",yymax,"]")
 
         # shapefile doesnt exist only plot dot at location
-        else:   
+        else:
             # xpt = map4(dict_metadata[basin_id]["lon"],dict_metadata[basin_id]["lat"])[0]
             # ypt = map4(dict_metadata[basin_id]["lon"],dict_metadata[basin_id]["lat"])[1]
             xpt = dict_properties[basin_id]["lon"]
             ypt = dict_properties[basin_id]["lat"]
             x2,  y2   = (1.1,0.95-ibasin_id*0.1)
-            
+
             sub.plot(xpt, ypt,
                      linestyle='None', marker='o', markeredgecolor=icolor, markerfacecolor=icolor,
-                     transform=ccrs.PlateCarree(), 
+                     transform=ccrs.PlateCarree(),
                      markersize=0.7, markeredgewidth=0.0)
 
             # print("Basin: ",basin_id)
@@ -788,8 +791,8 @@ if True:
 
     msis= np.array([ sobol_indexes[basin_id] * 0.0 for basin_id in basin_ids ])              # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ADJUST WHEN I GET MARKSTROM DATA
     cticks = [ min_sum_msi+ii*(max_sum_msi-min_sum_msi)/10. for ii in range(10+1) ]  # cbar.get_ticks()      # tick labels
-    percent_in_cat = np.diff([0]+ [ np.sum(msis < ctick) for ctick in cticks ])*100.0/np.shape(msis)[0]  
-    
+    percent_in_cat = np.diff([0]+ [ np.sum(msis < ctick) for ctick in cticks ])*100.0/np.shape(msis)[0]
+
     # add percentages of basins with performance
     # for iitick,itick in enumerate(cticks):
     #     if iitick == 0:
@@ -814,7 +817,7 @@ if True:
     # ----------------------------------------------------------------
     # (B) MAI sum of mSI of paras
     # ----------------------------------------------------------------
-    
+
     #     [left, bottom, width, height]
     pos = [0.4,0.8,0.45,0.15]
     sub = fig.add_axes(pos, projection=ccrs.LambertConformal())
@@ -839,7 +842,7 @@ if True:
     sub.gridlines(xlocs=xticks, ylocs=yticks,linewidth=0.1, color='gray', alpha=0.5, linestyle='-')
 
     # Label the end-points of the gridlines using the custom tick makers:
-    sub.xaxis.set_major_formatter(LONGITUDE_FORMATTER) 
+    sub.xaxis.set_major_formatter(LONGITUDE_FORMATTER)
     sub.yaxis.set_major_formatter(LATITUDE_FORMATTER)
     lambert_xticks(sub, xticks)
     lambert_yticks(sub, yticks)
@@ -853,7 +856,7 @@ if True:
     # add label with current number of basins
     sub.text(0.05,0.05,str2tex("$\mathrm{N}_\mathrm{basins} = "+str(len(basin_ids))+"$",usetex=usetex),transform=sub.transAxes)
 
-    # adjust frame linewidth 
+    # adjust frame linewidth
     sub.outline_patch.set_linewidth(lwidth)
 
     coord_catch   = []
@@ -871,14 +874,14 @@ if True:
         elif isum_msi > max_sum_msi:
             icolor = cmap(1.0)
         else:
-            icolor = cmap((isum_msi-min_sum_msi)/(max_sum_msi-min_sum_msi))        
+            icolor = cmap((isum_msi-min_sum_msi)/(max_sum_msi-min_sum_msi))
 
         # if shapefile exists --> plot largest of the shapes
         if ( os.path.exists(shapefilename) ):
             # [lon lat]
             coords = fread(shapefilename, skip=1, separator=';')
             coord_catch.append(coords)
-        
+
             # add catchment shape to plot
             nan_idx = np.where(np.isnan(coords[:,0]))[0]                                  # nan's, e.g., array([    0,     6, 16896, 16898])
             nshapes = len(nan_idx)-1                                                      #        e.g., 3
@@ -921,16 +924,16 @@ if True:
             # print("   --> lat range = [",yymin,",",yymax,"]")
 
         # shapefile doesnt exist only plot dot at location
-        else:   
+        else:
             # xpt = map4(dict_metadata[basin_id]["lon"],dict_metadata[basin_id]["lat"])[0]
             # ypt = map4(dict_metadata[basin_id]["lon"],dict_metadata[basin_id]["lat"])[1]
             xpt = dict_properties[basin_id]["lon"]
             ypt = dict_properties[basin_id]["lat"]
             x2,  y2   = (1.1,0.95-ibasin_id*0.1)
-            
+
             sub.plot(xpt, ypt,
                      linestyle='None', marker='o', markeredgecolor=icolor, markerfacecolor=icolor,
-                     transform=ccrs.PlateCarree(), 
+                     transform=ccrs.PlateCarree(),
                      markersize=0.7, markeredgewidth=0.0)
 
             # print("Basin: ",basin_id)
@@ -949,8 +952,8 @@ if True:
 
     msis= np.array([ sobol_indexes[basin_id] for basin_id in basin_ids ])
     cticks = [ min_sum_msi+ii*(max_sum_msi-min_sum_msi)/10. for ii in range(10+1) ]  # cbar.get_ticks()      # tick labels
-    percent_in_cat = np.diff([0]+ [ np.sum(msis < ctick) for ctick in cticks ])*100.0/np.shape(msis)[0]  
-    
+    percent_in_cat = np.diff([0]+ [ np.sum(msis < ctick) for ctick in cticks ])*100.0/np.shape(msis)[0]
+
     # add percentages of basins with performance
     for iitick,itick in enumerate(cticks):
         if iitick == 0:
@@ -967,8 +970,8 @@ if True:
                       va='center',
                       ha='center',
                       rotation=0)
-        
-    
+
+
 
 if (outtype == 'pdf'):
     pdf_pages.savefig(fig)
@@ -978,7 +981,7 @@ elif (outtype == 'png'):
     fig.savefig(pngfile, transparent=transparent, bbox_inches=bbox_inches, pad_inches=pad_inches)
     plt.close(fig)
 
-    
+
 
 # -------------------------------------------------------------------------
 # Finished
@@ -990,9 +993,8 @@ elif (outtype == 'png'):
     pass
 else:
     plt.show()
-        
+
 
 t2    = time.time()
 strin = '[m]: '+astr((t2-t1)/60.,1) if (t2-t1)>60. else '[s]: '+astr(t2-t1,0)
 print('Time ', strin)
-
