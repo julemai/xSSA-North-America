@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
         file_annual_forcing_stats = '.'.join(outfile.split('.')[:-1])+'_forcings.'+outfile.split('.')[-1]
         ff_forc = open(file_annual_forcing_stats, "w")
-        ff_forc.write("basin_id; annual_sum_prec_mm; annual_ave_temp_degC; annual_sum_pet_mm \n")
+        ff_forc.write("basin_id; annual_sum_prec_mm; annual_ave_temp_degC; annual_sum_pet_mm; annual_ndays_wet_snow_1; ndays_cold_total_annual_ave \n")
     
     climate_indexes = {}
     for basin_id in basin_ids:
@@ -223,16 +223,46 @@ if __name__ == '__main__':
         pet_total_annual_ave = pet_total_annual.mean()                                                  #  1 value
 
         # ---------------------------------------
+        # derive number of wet-snow days
 
+        # derive snow amount as RAVEN does in ":RainSnowFraction RAINSNOW_DINGMAN"
+        #    uses global parameters: G.rainsnow_temp=0.15;
+        #                            G.rainsnow_delta=2.0;
+        #    ---> temp < 0.15 - 1.0  --> snow = 1.0 * precip
+        #         temp > 0.15 + 1.0  --> snow = 0.0 * precip
+        #         0.15 - 1.0 < temp < 0.15 + 1.0  --> snow = (temp + delta/2.)*(1./delta) - 1./delta * precip
+        snow_delta = 2.0
+        snow_temp  = 0.15
+        idx = np.where((tave<=snow_temp+snow_delta/2.) & (tave>=snow_temp-snow_delta/2.) & (precip>0.0))[0]
+        if len(idx) > 0:
+            ones = np.transpose( np.ones(len(idx)) )
+            df = pd.DataFrame(ones, columns = ['ones'], index=pd.DatetimeIndex(ttime[idx]), dtype=float) # it's basically only the date
+            ndays_wet_snow_total_annual     = df.ones.resample("Y").agg(['sum'])                         # 61 values
+            ndays_wet_snow_total_annual_ave = ndays_wet_snow_total_annual.mean()                         #  1 value
+        else:
+            ndays_wet_snow_total_annual_ave = [ 0.0 ]
+
+        # ---------------------------------------
+        # derive number of cold days
+
+        # days with temperature below negative
+        idx = np.where(tave<=0.0)[0]
+        if len(idx) > 0:
+            ones = np.transpose( np.ones(len(idx)) )
+            df = pd.DataFrame(ones, columns = ['ones'], index=pd.DatetimeIndex(ttime[idx]), dtype=float) # it's basically only the date
+            ndays_cold_annual           = df.ones.resample("Y").agg(['sum'])                             # 61 values
+            ndays_cold_total_annual_ave = ndays_cold_annual.mean()                                       #  1 value
+        else:
+            ndays_cold_total_annual_ave = [ 0.0 ]
+        
+        # ---------------------------------------
+        # derive fraction of precip as snow
+        
         if snow_calc == "raven":
+
             # derive snow amount as RAVEN does in ":RainSnowFraction RAINSNOW_DINGMAN"
-            #    uses global parameters: G.rainsnow_temp=0.15;
-            #                            G.rainsnow_delta=2.0;
-            #    ---> temp < 0.15 - 1.0  --> snow = 1.0 * precip
-            #         temp > 0.15 + 1.0  --> snow = 0.0 * precip
-            #         0.15 - 1.0 < temp < 0.15 + 1.0  --> snow = (temp + delta/2.)*(1./delta) - 1./delta * precip
-            snow_delta = 2.0
-            snow_temp  = 0.15
+            # parameters see above
+            
             snow = np.ones(np.shape(precip))*-9999.0
             # all precip is snow
             idx = np.where(tave<snow_temp-snow_delta/2.)
@@ -254,7 +284,6 @@ if __name__ == '__main__':
             climate_index = climate_index_knoben(ttime, precip, tave, pet, snow=None, color=True, indicators=True)
         else:
             raise ValueError("This snow calculation routine (-s) is not implemented yet!")
-        
         #
         climate_indexes[basin_id] = tuple([climate_index['color']['red'],climate_index['color']['green'],climate_index['color']['blue']])
 
@@ -272,9 +301,11 @@ if __name__ == '__main__':
                           astr(climate_index['color']['blue'],prec=4)+"\n")
 
             ff_forc.write(    basin_id+"; "+
-                                  astr(precip_total_annual_ave[0],prec=4)+"; "+
-                                  astr(tave_ave_annual_ave[0],prec=4)+"; "+
-                                  astr(pet_total_annual_ave[0],prec=4)+"; "+"\n")
+                                  astr(        precip_total_annual_ave[0],prec=4)+"; "+
+                                  astr(            tave_ave_annual_ave[0],prec=4)+"; "+
+                                  astr(           pet_total_annual_ave[0],prec=4)+"; "+
+                                  astr(ndays_wet_snow_total_annual_ave[0],prec=4)+"; "+
+                                  astr(    ndays_cold_total_annual_ave[0],prec=4)+"; "+"\n")
         else:
             print(climate_index)
 
