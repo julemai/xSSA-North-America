@@ -356,7 +356,7 @@ if __name__ == '__main__':
         import matplotlib.pyplot as plt
         # mpl.rc('figure', figsize=(4./5.*8.27,4./5.*11.69)) # a4 portrait
         mpl.rc('figure', figsize=(7.48,9.06)) # WRR maximal figure size
-    mpl.rc('text.latex', unicode=True)
+    mpl.rc('text.latex') #, unicode=True)
     mpl.rc('font', size=textsize)
     mpl.rc('path', simplify=False) # do not remove
     # print(mpl.rcParams)
@@ -490,7 +490,7 @@ if __name__ == '__main__':
     sub.set_ylim(ylim)
 
     npara = len(paras)
-    plt.xticks(np.arange(npara), paras,rotation=90,fontsize='x-small')
+    plt.xticks(np.arange(npara), paras,rotation=90,fontsize='small')
     
     plt.title(jams.str2tex('Sensitivities of Model Parameters',usetex=usetex))
     plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
@@ -585,7 +585,7 @@ if __name__ == '__main__':
     sub.set_ylim(ylim)
 
     nopt = len(procopt)
-    plt.xticks(np.arange(nopt), procopt,rotation=90,fontsize='x-small')
+    plt.xticks(np.arange(nopt), procopt,rotation=90,fontsize='small')
     
     plt.title(jams.str2tex('Sensitivities of Process Options',usetex=usetex))
     plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
@@ -622,7 +622,7 @@ if __name__ == '__main__':
 
     sub.set_ylim(ylim)
     
-    plt.xticks(np.arange(nproc), processes,rotation=90,fontsize='x-small')
+    plt.xticks(np.arange(nproc), processes,rotation=90,fontsize='small')
     plt.title(jams.str2tex('Sensitivities of Processes',usetex=usetex))
     #plt.ylabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
@@ -700,8 +700,8 @@ if __name__ == '__main__':
 
     # [left, bottom, width, height]
     pos_a      = [0.100,0.1750,0.255,0.7750]
-    pos_b      = [0.555,0.4825,0.255,0.4675]
-    pos_c      = [0.555,0.1750,0.255,0.2275]
+    pos_b      = [0.605,0.4825,0.255,0.4675]
+    pos_c      = [0.605,0.1750,0.255,0.2275]
     pos_legend = [0.180,0.0200,0.610,0.09]
 
     # -------------
@@ -814,9 +814,9 @@ if __name__ == '__main__':
     sub.set_xlim(ylim)
 
     npara = len(paras)
-    plt.yticks(np.arange(npara), paras,rotation=0,fontsize='x-small')
+    plt.yticks(np.arange(npara), paras,rotation=0,fontsize='medium')
     
-    plt.title(jams.str2tex('Sensitivities\n Model Parameters',usetex=usetex))
+    plt.title(jams.str2tex('Sensitivities of\n Model Parameters',usetex=usetex))
     plt.xlabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
     sub.invert_yaxis()  # labels read top-to-bottom 
@@ -941,9 +941,9 @@ if __name__ == '__main__':
     sub.set_xlim(ylim)
 
     nopt = len(procopt)
-    plt.yticks(np.arange(nopt), procopt,rotation=0,fontsize='x-small')
+    plt.yticks(np.arange(nopt), procopt,rotation=0,fontsize='medium')
     
-    plt.title(jams.str2tex('Sensitivities\n Process Options',usetex=usetex))
+    plt.title(jams.str2tex('Sensitivities of\n Process Options',usetex=usetex))
     # plt.xlabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
     sub.invert_yaxis()  # labels read top-to-bottom 
@@ -1009,8 +1009,8 @@ if __name__ == '__main__':
     sub.set_ylim([-1,nproc])
     sub.set_xlim(ylim)
     
-    plt.yticks(np.arange(nproc), processes,rotation=0,fontsize='x-small')
-    plt.title(jams.str2tex('Sensitivities\n Processes',usetex=usetex))
+    plt.yticks(np.arange(nproc), processes,rotation=0,fontsize='medium')
+    plt.title(jams.str2tex('Sensitivities of\n Processes',usetex=usetex))
     plt.xlabel(jams.str2tex("Sobol' Index",usetex=usetex))
 
     sub.invert_yaxis()  # labels read top-to-bottom
@@ -1212,7 +1212,7 @@ if __name__ == '__main__':
     sub.set_ylim(ylim)
 
     #npara = len(paras)
-    #plt.xticks(np.arange(npara), paras,rotation=90,fontsize='x-small')
+    #plt.xticks(np.arange(npara), paras,rotation=90,fontsize='small')
     
     # sub.set_title(jams.str2tex('Sensitivities of Model Processes',usetex=usetex))
     sub.set_xlabel(jams.str2tex("Day of Year",usetex=usetex))
@@ -1221,18 +1221,18 @@ if __name__ == '__main__':
     # Create custom artists
     #      (left, bottom), width, height
     boxSTi_1  = patches.Rectangle( (0.00, -0.54), 0.02, 0.05, color = infil_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_2  = patches.Rectangle( (0.00, -0.62), 0.02, 0.05, color = quick_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_3  = patches.Rectangle( (0.00, -0.70), 0.02, 0.05, color = evapo_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_4  = patches.Rectangle( (0.00, -0.78), 0.02, 0.05, color = basef_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_5  = patches.Rectangle( (0.00, -0.86), 0.02, 0.05, color = snowb_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_6  = patches.Rectangle( (0.22, -0.54), 0.02, 0.05, color = convs_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_7  = patches.Rectangle( (0.22, -0.62), 0.02, 0.05, color = convd_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_8  = patches.Rectangle( (0.22, -0.70), 0.02, 0.05, color = potme_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_9  = patches.Rectangle( (0.22, -0.78), 0.02, 0.05, color = perco_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_10 = patches.Rectangle( (0.22, -0.86), 0.02, 0.05, color = rspar_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    boxSTi_11 = patches.Rectangle( (0.22, -0.94), 0.02, 0.05, color = rscor_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_2  = patches.Rectangle( (0.00, -0.63), 0.02, 0.05, color = quick_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_3  = patches.Rectangle( (0.00, -0.72), 0.02, 0.05, color = evapo_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_4  = patches.Rectangle( (0.00, -0.81), 0.02, 0.05, color = basef_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_5  = patches.Rectangle( (0.22, -0.54), 0.02, 0.05, color = snowb_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_6  = patches.Rectangle( (0.22, -0.63), 0.02, 0.05, color = convs_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_7  = patches.Rectangle( (0.22, -0.72), 0.02, 0.05, color = convd_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_8  = patches.Rectangle( (0.22, -0.81), 0.02, 0.05, color = potme_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_9  = patches.Rectangle( (0.62, -0.54), 0.02, 0.05, color = perco_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_10 = patches.Rectangle( (0.62, -0.63), 0.02, 0.05, color = rspar_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
+    boxSTi_11 = patches.Rectangle( (0.62, -0.72), 0.02, 0.05, color = rscor_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
     #boxSTi_10 = patches.Rectangle( (0.22, -0.86), 0.02, 0.05, color = soilm_color, alpha=0.6, fill  = True, transform=sub.transAxes, clip_on=False )
-    line      = patches.Rectangle( (0.72, -0.52), 0.02, 0.00, color = 'black',     alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
+    line      = patches.Rectangle( (0.62, -0.79), 0.02, 0.00, color = 'black',     alpha=1.0, fill  = True, transform=sub.transAxes, clip_on=False )
     sub.add_patch(boxSTi_1)
     sub.add_patch(boxSTi_2)
     sub.add_patch(boxSTi_3)
@@ -1248,19 +1248,19 @@ if __name__ == '__main__':
     sub.add_patch(line)
 
     sub.text(0.00, -0.40, jams.str2tex("Processes:",usetex=usetex),                   horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.53, jams.str2tex("Infiltration $M$",usetex=usetex),                 fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.61, jams.str2tex("Quickflow $N$",usetex=usetex),                    fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.69, jams.str2tex("Evaporation $O$",usetex=usetex),                  fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.77, jams.str2tex("Baseflow $P$",usetex=usetex),                     fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.04, -0.85, jams.str2tex("Snow Balance $Q$",usetex=usetex),                 fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.53, jams.str2tex("Convolution (Surface Runoff) $R$",usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.61, jams.str2tex("Convolution (Delayed Runoff) $S$",usetex=usetex), fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.69, jams.str2tex("Potential Melt $T$",usetex=usetex),               fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.77, jams.str2tex("Percolation $U$",usetex=usetex),                  fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.85, jams.str2tex("Rain-Snow Partitioning $V$",usetex=usetex),       fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.26, -0.93, jams.str2tex("Precipitation Correction $W$",usetex=usetex),         fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    #sub.text(0.26, -0.85, jams.str2tex("Soil Model",usetex=usetex),                   fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
-    sub.text(0.76, -0.53, jams.str2tex("Weight of Timestep",usetex=usetex),           fontsize='small', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.53, jams.str2tex("Infiltration $M$",usetex=usetex),                 fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.62, jams.str2tex("Quickflow $N$",usetex=usetex),                    fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.71, jams.str2tex("Evaporation $O$",usetex=usetex),                  fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.04, -0.80, jams.str2tex("Baseflow $P$",usetex=usetex),                     fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.53, jams.str2tex("Snow Balance $Q$",usetex=usetex),                 fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.62, jams.str2tex("Convolution (Surface Runoff) $R$",usetex=usetex), fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.71, jams.str2tex("Convolution (Delayed Runoff) $S$",usetex=usetex), fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.26, -0.80, jams.str2tex("Potential Melt $T$",usetex=usetex),               fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.66, -0.53, jams.str2tex("Percolation $U$",usetex=usetex),                  fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.66, -0.62, jams.str2tex("Rain-Snow Partitioning $V$",usetex=usetex),       fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.66, -0.71, jams.str2tex("Precipitation Correction $W$",usetex=usetex),     fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    #sub.text(0.26, -0.85, jams.str2tex("Soil Model",usetex=usetex),                      fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
+    sub.text(0.66, -0.80, jams.str2tex("Weight of Timestep",usetex=usetex),               fontsize='medium', horizontalalignment='left', verticalalignment='center', transform=sub.transAxes)
     
     #jams.abc2plot(sub,dxabc/2,dyabc,iplot,bold=True,usetex=usetex,mathrm=True, large=True, parenthesis='none',verticalalignment='top')
 
