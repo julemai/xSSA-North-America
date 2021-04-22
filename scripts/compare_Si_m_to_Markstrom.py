@@ -284,7 +284,7 @@ if __name__ == '__main__':
         ff.write('basin_id,sum(fast_paras),sum(xSSA_sobol_indexes["paras"]["msi"]["Q"])\n')
 
         fast_indexes = {}
-        for ibasin_id,basin_id in enumerate(basin_ids[0:4]):
+        for ibasin_id,basin_id in enumerate(basin_ids):
 
             # print("   ",basin_id)
 
