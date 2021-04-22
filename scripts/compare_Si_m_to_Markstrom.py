@@ -187,6 +187,7 @@ if __name__ == '__main__':
 
             ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
             tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
+            tmp_data   = tmp_data[0:35]  # discard weighting paras
             sobol_indexes_msi[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
 
             # ---------------------
@@ -197,6 +198,7 @@ if __name__ == '__main__':
 
             ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
             tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
+            tmp_data   = tmp_data[0:35]  # discard weighting paras
             sobol_indexes_msti[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
 
             # ---------------------
@@ -207,6 +209,7 @@ if __name__ == '__main__':
 
             ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
             tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
+            tmp_data   = tmp_data[0:35]  # discard weighting paras
             sobol_indexes_wsi[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
 
             # ---------------------
@@ -217,6 +220,7 @@ if __name__ == '__main__':
 
             ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
             tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
+            tmp_data   = tmp_data[0:35]  # discard weighting paras
             sobol_indexes_wsti[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
 
             nc4_in.close()
@@ -236,6 +240,8 @@ if __name__ == '__main__':
 
     print("min_sobol_indexes: ",min_sobol_indexes)
     print("max_sobol_indexes: ",max_sobol_indexes)
+
+    stop
 
     # -------------------------------------------------------------------------
     # Read shape files from PMRS
