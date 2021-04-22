@@ -223,21 +223,19 @@ if __name__ == '__main__':
 
         ff = open(filename, 'w')
         ff.write('basin_id,sum(msi_paras),sum(msti_paras),sum(wsi_paras),sum(wsti_paras)\n')
-        for ibasin in sobol_indexes:
-            string = ibasin+','+astr(sobol_indexes_msi[ibasin],prec=6)+
-                            ','+astr(sobol_indexes_msti[ibasin],prec=6)+
-                            ','+astr(sobol_indexes_wsi[ibasin],prec=6)+
-                            ','+astr(sobol_indexes_wsti[ibasin],prec=6)+'\n'
+        for ibasin in sobol_indexes_msi:
+            string = (ibasin+','+astr(sobol_indexes_msi[ibasin],prec=6)+
+                             ','+astr(sobol_indexes_msti[ibasin],prec=6)+
+                             ','+astr(sobol_indexes_wsi[ibasin],prec=6)+
+                             ','+astr(sobol_indexes_wsti[ibasin],prec=6)+'\n')
             ff.write(string)
         ff.close()
 
-    min_sobol_indexes = np.min([ sobol_indexes[kk] for kk in sobol_indexes.keys() ] )
-    max_sobol_indexes = np.max([ sobol_indexes[kk] for kk in sobol_indexes.keys() ] )
+    min_sobol_indexes = np.min([ sobol_indexes_msi[kk] for kk in list(sobol_indexes_msi.keys()) ] )
+    max_sobol_indexes = np.max([ sobol_indexes_msi[kk] for kk in list(sobol_indexes_msi.keys()) ] )
 
     print("min_sobol_indexes: ",min_sobol_indexes)
     print("max_sobol_indexes: ",max_sobol_indexes)
-
-    stop
 
     # -------------------------------------------------------------------------
     # Read shape files from PMRS
