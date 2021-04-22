@@ -158,7 +158,7 @@ if __name__ == '__main__':
     print('')
     print('Reading xSSA sensitivity results ...')
 
-    filename = "sa_for_markstrom_xSSA.dat"
+    filename = "sa_for_markstrom_xSSAsaghdjha.dat"
     if os.path.exists(filename):
 
         sobol_indexes_dat = sread(filename, skip=1)
@@ -167,7 +167,10 @@ if __name__ == '__main__':
             sobol_indexes[ss[0]] = np.float(ss[1])
 
     else:
-        sobol_indexes = {}
+        sobol_indexes_msi  = {}
+        sobol_indexes_msti = {}
+        sobol_indexes_wsi  = {}
+        sobol_indexes_wsti = {}
         variable      = 'Q'
         for ibasin_id,basin_id in enumerate(basin_ids):
 
@@ -184,14 +187,47 @@ if __name__ == '__main__':
 
             ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
             tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
-            sobol_indexes[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
+            sobol_indexes_msi[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
+
+            # ---------------------
+            # sensitivity indexes: sobol_indexes['paras']['msi'][variable]
+            # ---------------------
+            analysis_type    = 'paras'       # 'paras', 'process_options', 'processes'
+            sensi_index_type = 'msti'         # 'msi', 'msti', 'wsi', 'wsti'
+
+            ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
+            tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
+            sobol_indexes_msti[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
+
+            # ---------------------
+            # sensitivity indexes: sobol_indexes['paras']['msi'][variable]
+            # ---------------------
+            analysis_type    = 'paras'       # 'paras', 'process_options', 'processes'
+            sensi_index_type = 'wsi'         # 'msi', 'msti', 'wsi', 'wsti'
+
+            ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
+            tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
+            sobol_indexes_wsi[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
+
+            # ---------------------
+            # sensitivity indexes: sobol_indexes['paras']['msi'][variable]
+            # ---------------------
+            analysis_type    = 'paras'       # 'paras', 'process_options', 'processes'
+            sensi_index_type = 'wsti'         # 'msi', 'msti', 'wsi', 'wsti'
+
+            ncvar_name = sensi_index_type+'_'+analysis_type.split('_')[-1]      # msi_paras, msi_options, msi_processes
+            tmp_data   = nc4_in.groups[variable].variables[ncvar_name][:]
+            sobol_indexes_wsti[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))   # sum of all values (make negative ones 0.0)
 
             nc4_in.close()
 
         ff = open(filename, 'w')
-        ff.write('basin_id,sum(msi_paras)\n')
+        ff.write('basin_id,sum(msi_paras),sum(msti_paras),sum(wsi_paras),sum(wsti_paras)\n')
         for ibasin in sobol_indexes:
-            string = ibasin+','+astr(sobol_indexes[ibasin],prec=6)+'\n'
+            string = ibasin+','+astr(sobol_indexes_msi[ibasin],prec=6)+
+                            ','+astr(sobol_indexes_msti[ibasin],prec=6)+
+                            ','+astr(sobol_indexes_wsi[ibasin],prec=6)+
+                            ','+astr(sobol_indexes_wsti[ibasin],prec=6)+'\n'
             ff.write(string)
         ff.close()
 
@@ -200,6 +236,8 @@ if __name__ == '__main__':
 
     print("min_sobol_indexes: ",min_sobol_indexes)
     print("max_sobol_indexes: ",max_sobol_indexes)
+
+    stop
 
     # -------------------------------------------------------------------------
     # Read shape files from PMRS
