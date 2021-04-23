@@ -118,6 +118,7 @@ if __name__ == '__main__':
     from   str2tex              import str2tex                 # in lib/
     import functions                                           # in lib/
     import netCDF4 as nc4
+    import sobol_index
     #from   .general_functions   import logistic_offset_p      # in lib/
     #from   .fit_functions       import cost_square            # in lib/
 
@@ -167,6 +168,8 @@ if __name__ == '__main__':
             sobol_indexes[ss[0]] = np.float(ss[1])
 
     else:
+        sobol_indexes_Qmean_si  = {}   # sensitivity regarding Qmean instead of Q(t)
+        sobol_indexes_Qmean_sti = {}   # sensitivity regarding Qmean instead of Q(t)
         sobol_indexes_msi  = {}
         sobol_indexes_msti = {}
         sobol_indexes_wsi  = {}
@@ -178,6 +181,18 @@ if __name__ == '__main__':
 
             nc4_file = "../data_out/"+basin_id+"/results_nsets1000.nc"
             nc4_in = nc4.Dataset(nc4_file, "r", format="NETCDF4")
+
+            # derive mean Q (over time) as done by Markstrom (see Fig 2 column 1)
+            f_a = np.mean(nc4_in.groups["Q"].variables["f_a"][:], axis=0)
+            f_b = np.mean(nc4_in.groups["Q"].variables["f_b"][:], axis=0)
+            f_c = np.mean(nc4_in.groups["Q"].variables["f_c_paras"][:], axis=0)
+
+            si, sti = sobol_index.sobol_index(ya=f_a, yb=f_b, yc=f_c, si=True,sti=True, method='Mai1999')
+
+            tmp_data   = si[0:35]  # discard weighting paras
+            sobol_indexes_Qmean_si[basin_id]  = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))
+            tmp_data   = sti[0:35]  # discard weighting paras
+            sobol_indexes_Qmean_sti[basin_id] = np.sum(np.where(tmp_data<0.0,0.0,tmp_data))
 
             # ---------------------
             # sensitivity indexes: sobol_indexes['paras']['msi'][variable]
@@ -225,13 +240,24 @@ if __name__ == '__main__':
 
             nc4_in.close()
 
+            string = (basin_id+','+astr(sobol_indexes_msi[basin_id],prec=6)+
+                             ','+astr(sobol_indexes_msti[basin_id],prec=6)+
+                             ','+astr(sobol_indexes_wsi[basin_id],prec=6)+
+                             ','+astr(sobol_indexes_wsti[basin_id],prec=6)+
+                             ','+astr(sobol_indexes_Qmean_si[basin_id],prec=6)+
+                             ','+astr(sobol_indexes_Qmean_sti[basin_id],prec=6))
+
+            print(string)
+
         ff = open(filename, 'w')
-        ff.write('basin_id,sum(msi_paras),sum(msti_paras),sum(wsi_paras),sum(wsti_paras)\n')
+        ff.write('basin_id,sum(msi_paras),sum(msti_paras),sum(wsi_paras),sum(wsti_paras),sum(si_paras_Qmean),sum(sti_paras_Qmean),\n')
         for ibasin in sobol_indexes_msi:
             string = (ibasin+','+astr(sobol_indexes_msi[ibasin],prec=6)+
                              ','+astr(sobol_indexes_msti[ibasin],prec=6)+
                              ','+astr(sobol_indexes_wsi[ibasin],prec=6)+
-                             ','+astr(sobol_indexes_wsti[ibasin],prec=6)+'\n')
+                             ','+astr(sobol_indexes_wsti[ibasin],prec=6)+
+                             ','+astr(sobol_indexes_Qmean_si[ibasin],prec=6)+
+                             ','+astr(sobol_indexes_Qmean_sti[ibasin],prec=6)+'\n')
             ff.write(string)
         ff.close()
 

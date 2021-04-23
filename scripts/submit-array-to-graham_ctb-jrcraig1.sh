@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # submit with:
-#       sbatch submit-array-to-graham_ctb-jrcraig1.sh   
+#       sbatch submit-array-to-graham_ctb-jrcraig1.sh
 
 #SBATCH --mem-per-cpu=7G                          # memory; default unit is megabytes
 #SBATCH --output=/dev/null
@@ -68,12 +68,12 @@ if [ ! -e ../data_out/${bb}/results_nsets${nsets}.token ] ; then
     # pickle_all="../data_out/${bb}/results_nsets${nsets}.pkl"
     # pickle_si="../data_out/${bb}/sensitivity_nsets${nsets}.pkl"
     # python extract_si_results_from_pkl.py -i ${pickle_all} -o ${pickle_si}
-    
+
     # plot results
     python figure_2.py -t pdf -p ../data_out/${bb}/${bb} -n ${nsets} -i ../data_out/${bb}/results_nsets${nsets}.nc -o nc
     pdfcrop ../data_out/${bb}/${bb}.pdf
     mv ../data_out/${bb}/${bb}-crop.pdf ../data_out/${bb}/${bb}.pdf
-    
+
 fi
 
 
