@@ -3,7 +3,7 @@
 
 # basin forcings, observed streamflow, and shapes are ignored
 data_in/*.mat
-data_in/data_obs/*
+# data_in/data_obs/*
 data_in/data_model/Raven.exe
 
 # basin outputs (pkl files are ignored)
@@ -11,6 +11,7 @@ data_out/[0-9]*
 
 # some supplementary data
 data_supp/rakovec_JGRA_2019/*/*/*/daily_discharge.out
+data_supp/mizukami_WRR_2017.zip
 data_supp/mizukami_WRR_2017/*/*/hcdn_calib_case04.txt
 data_supp/mizukami_WRR_2017/*/*/hcdn_vali_case04.txt
 data_supp/mizukami_WRR_2017/analysis/*
