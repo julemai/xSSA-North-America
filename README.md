@@ -1,6 +1,6 @@
 # The Sensitivity of Simulated Streamflow to Individual Hydrologic Processes Across North America
 
-*by Juliane Mai<sup> 1</sup>,  James R. Craig<sup> 1</sup>,  Bryan A. Tolson<sup> 1</sup>, and Richard Arsenault<sup> 1</sup>*<br><br>
+*by Juliane Mai<sup> 1</sup>,  James R. Craig<sup> 1</sup>,  Bryan A. Tolson<sup> 1</sup>, and Richard Arsenault<sup> 2</sup>*<br><br>
 *<sup> 1</sup> Dept. of Civil and Environmental Engineering, University of Waterloo, Waterloo, ON, Canada.*<br>
 *<sup> 2</sup> Dept. of Construction Engineering, École de technologie supérieure, Montreal, QC, Canada.*
 
