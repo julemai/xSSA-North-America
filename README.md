@@ -62,4 +62,4 @@ http://doi.org/10.1038/s41597-020-00583-2
 J. Mai, J. R. Craig, B. A. Tolson, and R. Arsenault (2021).<br>
 The Sensitivity of Simulated Streamflow to Individual Hydrologic Processes Across North America. <br>
 *Zenodo*<br>
-https://doi.org/10.5281/zenodo.4301003
+[![DOI](https://zenodo.org/badge/224722499.svg)](https://zenodo.org/badge/latestdoi/224722499)
