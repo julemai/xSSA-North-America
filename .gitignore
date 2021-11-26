@@ -11,6 +11,7 @@ data_out/[0-9]*
 data_out/mathematica
 
 # some supplementary data
+data_supp/arheimer_HESS_2020
 data_supp/rakovec_JGRA_2019/*/*/*/daily_discharge.out
 data_supp/mizukami_WRR_2017.zip
 data_supp/mizukami_WRR_2017/*/*/hcdn_calib_case04.txt
