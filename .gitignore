@@ -12,17 +12,11 @@ data_out/mathematica
 
 # some supplementary data
 data_supp/arheimer_HESS_2020
-data_supp/rakovec_JGRA_2019/*/*/*/daily_discharge.out
-data_supp/mizukami_WRR_2017.zip
-data_supp/mizukami_WRR_2017/*/*/hcdn_calib_case04.txt
-data_supp/mizukami_WRR_2017/*/*/hcdn_vali_case04.txt
-data_supp/mizukami_WRR_2017/analysis/*
-data_supp/mizukami_WRR_2017/README.calib
-data_supp/mizukami_WRR_2017/gauge_information.txt
+data_supp/rakovec_JGRA_2019
+data_supp/mizukami_WRR_2017
 data_supp/markstrom_HESS_2016/sensScores/*
 data_supp/markstrom_HESS_2016/hrusAllConus*
-data_supp/newman_AMS_2017/sac_benchmark_output/*
-data_supp/newman_AMS_2017/sac_benchmark_output.tgz
+data_supp/newman_AMS_2017
 
 # some python generated files
 scripts/*.pyc
