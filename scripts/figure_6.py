@@ -1,1 +1,0 @@
-compare_Si_m_to_Markstrom.py
