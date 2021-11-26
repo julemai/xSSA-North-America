@@ -1,9 +1,0 @@
-"wSTi_infiltration","frac_p_as_snow","0.2985 - 0.8113*x + 1.0443*x^2 - 0.5203*x^3",0.905
-"wSTi_quickflow","frac_p_as_snow","0.8453 - 0.9004*x - 1.7366*x^2 + 2.4148*x^3",0.884
-"wSTi_evaporation","frac_p_as_snow","0.3835 - 0.7713*x + 0.1945*x^2 + 0.3964*x^3",0.915
-"wSTi_snowbalance","frac_p_as_snow","-0.009051 + 0.4161*x + 1.3796*x^2 - 2.0661*x^3",0.926
-"wSTi_convolutionsrfc","annual_ave_temp_degC","annual_ndays_cold_1","0.06531 - 0.00639*x + 0.0001645*x^2 - 0.0008165*y + 0.00004104*x*y + 2.6508*^-6*y^2",0.657
-"wSTi_potmelt","frac_p_as_snow","-0.01494 + 0.8236*x + 2.4265*x^2 - 3.1523*x^3",0.950
-"wSTi_percolation","frac_p_as_snow","0.2829 - 0.7275*x + 0.8276*x^2 - 0.3582*x^3",0.909
-"wSTi_rainsnowpartition","frac_p_as_snow","annual_ndays_cold_1","-0.001715 + 3.7710*x - 0.002150*y - 0.03638*x*y + 0.00001302*y^2 + 0.00008753*x*y^2",0.815
-"wSTi_precipcorrection","frac_p_as_snow","seasonality","0.07343 + 0.5829*x^2 - 1.0106*x^3 + 0.01122*y^3 - 0.1677*x*y^2 + 0.5264*x^2*y",0.809
