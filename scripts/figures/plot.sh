@@ -15,10 +15,10 @@ pid=$$
 dofig1=0  	# Flowchart
 dofig2=0  	# Plot calibration and validation results on a map
 dofig3=0  	# Plots time-aggregated xSSA results for 9 processes on a map
-dofig4=1        # Plots time-dependent sensitivity plots for selected basins (representative of XX clusters of Knoben climate index)
+dofig4=0        # Plots time-dependent sensitivity plots for selected basins (representative of XX clusters of Knoben climate index)
 dofig5=0        # Plots xSSA-derived vs predicted STi for each process in calibration and validation setting for 100 trials
 dofigS1=0        # Blended Model flowchart (same as S1 in Mai et al. (2020))
-dofigS2=0        # Plots comparison with Markstrom's FAST (first-order) results regarding mean runoff vs. xSSA (first-order; Si) regarding mean Q
+dofigS2=1        # Plots comparison with Markstrom's FAST (first-order) results regarding mean runoff vs. xSSA (first-order; Si) regarding mean Q
 
 
 if [[ ${dofig1} -eq 1 ]] ; then
@@ -99,7 +99,7 @@ if [[ ${dofigS1} -eq 1 ]] ; then
     # --------------------------------------------------------------------
     # Flowchart
     # --------------------------------------------------------------------
-    pdflatex ../scripts/figure_S1/figure_S1.tex  ${pipeit}
+    pdflatex figure_S1/figure_S1.tex  ${pipeit}
     pdfcrop figure_S1.pdf
     mv figure_S1-crop.pdf ../../figures/figure_S1.pdf
     rm figure_S1.pdf

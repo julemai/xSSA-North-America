@@ -91,7 +91,7 @@ if __name__ == '__main__':
     import sys
     import os
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    sys.path.append(dir_path+'/../scripts/lib')
+    sys.path.append(dir_path+'/lib')
 
     import numpy          as np
     import datetime       as datetime
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     # meta_float, meta_string = fsread("../data/mathematica/nse_gt_0.5_no-lat-lon_1-or-2pred/results_1-or-2_predictors_nse_gt_0.5_no-lat-lon_postprocessed.csv",
     #                                      skip=0,separator=',',snc=4,nc=1, comment='#')
 
-    ff = open("../data/mathematica/nse_gt_0.5_no-lat-lon_1-or-2pred_with_CV/results_1-or-2_predictors_nse_gt_0.5_no-lat-lon_with_CV_postprocessed.csv")
+    ff = open("../data/nse_gt_0.5_no-lat-lon_1-or-2pred_with_CV/results_1-or-2_predictors_nse_gt_0.5_no-lat-lon_with_CV_postprocessed.csv")
     content = ff.readlines()
     ff.close()
 
@@ -161,11 +161,11 @@ if __name__ == '__main__':
     print("-----------------")
     print("For table in publication")
     print("-----------------")
-    header = fread('../data/derived/properties_vs_sensitivity_nse_gt_0.5.csv',skip=1,cskip=1,header=True)
+    header = fread('../data/properties_vs_sensitivity_nse_gt_0.5.csv',skip=1,cskip=1,header=True)
     idx_wsti = [ iii for iii,ii in enumerate(header) if ( ('wSTi' in ii) and (ii.split('_')[1] in processes) ) ] # columns with wSTi and process that is analysed
     idx_prop = [ iii for iii,ii in enumerate(header) if not('wSTi' in ii) ] # idx of properties
-    properti_3316 = fread('../data/derived/properties_vs_sensitivity_nse_gt_0.5.csv',skip=1,cskip=1)[:,idx_prop]
-    obs_wSTi_3316 = fread('../data/derived/properties_vs_sensitivity_nse_gt_0.5.csv',skip=1,cskip=1)[:,idx_wsti]
+    properti_3316 = fread('../data/properties_vs_sensitivity_nse_gt_0.5.csv',skip=1,cskip=1)[:,idx_prop]
+    obs_wSTi_3316 = fread('../data/properties_vs_sensitivity_nse_gt_0.5.csv',skip=1,cskip=1)[:,idx_wsti]
 
     nbasins = np.shape(obs_wSTi_3316)[0]
     nprocesses = np.shape(obs_wSTi_3316)[1]
@@ -231,7 +231,7 @@ if __name__ == '__main__':
             for icalval,calval in enumerate(calvals):
 
                 # shape: trial_samples[nprocesses][2=obs/mod][2=cal/val][npoints,100]   # npoints = 66% in cal and 33% in val
-                trial_samples[iprocess][imode][icalval] = fread("../data/mathematica/nse_gt_0.5_no-lat-lon_1-or-2pred_with_CV/trials_wSTi_"+process+"_wSti_"+mode+"_"+calval+".csv",skip=1)
+                trial_samples[iprocess][imode][icalval] = fread("../data/nse_gt_0.5_no-lat-lon_1-or-2pred_with_CV/trials_wSTi_"+process+"_wSti_"+mode+"_"+calval+".csv",skip=1)
 
     ntrials = np.shape(trial_samples[0][0][0])[1]
     nprocesses = len(trial_samples)

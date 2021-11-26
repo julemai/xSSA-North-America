@@ -120,7 +120,7 @@ if __name__ == '__main__':
     # Read xSSA results
     # -------------------------------------------------------------------------
 
-    meta_float, meta_string = fsread("../data/sa_for_markstrom_xSSA_3316_35paras_Qmean_43paras_zerod.dat",skip=1,separator=',',snc=1,nc=6)
+    meta_float, meta_string = fsread("../data/sa_for_markstrom_xSSA.dat",skip=1,separator=',',snc=1,nc=6)
     meta_string = np.transpose(meta_string)[0]
 
     idx = np.where(np.array([ meta_float[ii][4] for ii,ibasin in enumerate(meta_string) ])>1.0)[0]
@@ -185,12 +185,12 @@ if __name__ == '__main__':
     corr_Markstrom_xSSA_si_qmean  = pearsonr(sa_results_valid[:,0],sa_results_valid[:,5])[0]
     corr_Markstrom_xSSA_sti_qmean = pearsonr(sa_results_valid[:,0],sa_results_valid[:,6])[0]
 
-    print("Correlation FAST vs msi:       ",corr_Markstrom_xSSA_msi)
-    print("Correlation FAST vs msti:      ",corr_Markstrom_xSSA_msti)
-    print("Correlation FAST vs wsi:       ",corr_Markstrom_xSSA_wsi)
-    print("Correlation FAST vs wsti:      ",corr_Markstrom_xSSA_wsti)
+    # print("Correlation FAST vs msi:       ",corr_Markstrom_xSSA_msi)
+    # print("Correlation FAST vs msti:      ",corr_Markstrom_xSSA_msti)
+    # print("Correlation FAST vs wsi:       ",corr_Markstrom_xSSA_wsi)
+    # print("Correlation FAST vs wsti:      ",corr_Markstrom_xSSA_wsti)
     print("Correlation FAST vs si_qmean:  ",corr_Markstrom_xSSA_si_qmean,"   <<<<<<<<<<<")
-    print("Correlation FAST vs sti_qmean: ",corr_Markstrom_xSSA_sti_qmean)
+    # print("Correlation FAST vs sti_qmean: ",corr_Markstrom_xSSA_sti_qmean)
 
 
 
