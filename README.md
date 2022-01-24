@@ -37,7 +37,8 @@ This GitHub contains all scripts and data to reproduce the plots in the paper an
 ### Journal Publication
 Mai, J., Craig, J. R., Tolson, B. A., and R. Arsenault (2021).<br>
 The Sensitivity of Simulated Streamflow to Individual Hydrologic Processes Across North America. <br>
-*Nature Communications*, accepted.
+*Nature Communications*, 13, 455.
+https://doi.org/10.1038/s41467-022-28010-7
 
 See the following publication for details on the introduction of the xSSA method and the Blended Model:<br>
 Mai, J., Craig, J. R., and Tolson, B. A. (2020).<br>
